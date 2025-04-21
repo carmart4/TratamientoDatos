@@ -1,2 +1,2 @@
 # TratamientoDatos
-Repositorio con ejercicios practicos en r
+Repositorio con ejercicios practicos en R
