@@ -11,7 +11,7 @@
 
 <meta name="author" content="Santi" />
 
-<meta name="date" content="2025-04-18" />
+<meta name="date" content="2025-04-20" />
 
 <title>Resumen</title>
 
@@ -1623,7 +1623,7 @@ display: none;
 
 <h1 class="title toc-ignore">Resumen</h1>
 <h4 class="author">Santi</h4>
-<h4 class="date">2025-04-18</h4>
+<h4 class="date">2025-04-20</h4>
 
 </div>
 
@@ -1673,6 +1673,36 @@ duplicados</a></li>
 duplicados</a></li>
 <li><a href="#duplicados-parciales" id="toc-duplicados-parciales">Duplicados parciales</a></li>
 <li><a href="#agregacion-para-parciales" id="toc-agregacion-para-parciales">Agregacion para parciales</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#capitulo-2" id="toc-capitulo-2">CAPITULO 2</a>
+<ul>
+<li><a href="#datos-categoricos" id="toc-datos-categoricos">Datos
+categoricos</a></li>
+<li><a href="#filtrando-con-joins" id="toc-filtrando-con-joins">Filtrando con joins</a></li>
+<li><a href="#ejercicios-3" id="toc-ejercicios-3">Ejercicios</a>
+<ul>
+<li><a href="#variables-categoricas" id="toc-variables-categoricas">Variables categoricas</a></li>
+</ul></li>
+<li><a href="#problemas-con-datos-categoricos" id="toc-problemas-con-datos-categoricos">Problemas con datos
+categoricos</a></li>
+<li><a href="#ejercicios-4" id="toc-ejercicios-4">Ejercicios</a>
+<ul>
+<li><a href="#identificando-inconsistencias" id="toc-identificando-inconsistencias">Identificando
+inconsistencias</a></li>
+<li><a href="#corrigiendo-las-inconsistencias" id="toc-corrigiendo-las-inconsistencias">Corrigiendo las
+inconsistencias</a></li>
+<li><a href="#colapsando-las-categorias" id="toc-colapsando-las-categorias">Colapsando las categorias</a></li>
+</ul></li>
+<li><a href="#cleaning-text-data" id="toc-cleaning-text-data">Cleaning
+text data</a></li>
+<li><a href="#expresiones-regulares" id="toc-expresiones-regulares">Expresiones regulares</a></li>
+<li><a href="#ejercicios-5" id="toc-ejercicios-5">Ejercicios</a>
+<ul>
+<li><a href="#remover-caracteres-de-una-expresion" id="toc-remover-caracteres-de-una-expresion">Remover caracteres de una
+expresion</a></li>
+<li><a href="#reemplazar-valores-que-no-cumplen-con-una-condicion" id="toc-reemplazar-valores-que-no-cumplen-con-una-condicion">Reemplazar
+valores que no cumplen con una condicion</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -2012,6 +2042,229 @@ dataframe</p>
 # distinct(ride_id, date, .keep_all=TRUE) %&gt;%
 # # Remove duration_min column
 # select(-duration_min)</code></pre>
+</div>
+</div>
+</div>
+<div id="capitulo-2" class="section level1">
+<h1>CAPITULO 2</h1>
+<div id="datos-categoricos" class="section level2">
+<h2>Datos categoricos</h2>
+<ul>
+<li>Los datos categoricos tienen valores conocidos</li>
+<li>Los factores, son un tipo de numero que representa cada
+categoria</li>
+<li>Factores, tiene los valores que puede recibir la columna y los
+niveles, que representa</li>
+</ul>
+</div>
+<div id="filtrando-con-joins" class="section level2">
+<h2>Filtrando con joins</h2>
+<ul>
+<li>Semi-join, las observaciones de x que estan en y</li>
+<li>Anti-join, las observaciones de x que NO estan en y</li>
+</ul>
+<pre class="r"><code># dataset &lt;- study_data
+# dataset2 &lt;- blodd_types
+
+# # sera el valor diferente
+# study_data %&gt;%
+#   anti_join(blood_types, by=&#39;blood_type&#39;)
+# 
+# # Para ver los valores &#39;correctos&#39;
+# study_data %&gt;%
+#   semi_join(blood_types, by=&#39;blood_type&#39;)</code></pre>
+</div>
+<div id="ejercicios-3" class="section level2">
+<h2>Ejercicios</h2>
+<div id="variables-categoricas" class="section level3">
+<h3>Variables categoricas</h3>
+<p>Para contar las veces en que aparece una variable categórica</p>
+<pre class="r"><code># # Count the number of occurrences of dest_size
+# sfo_survey %&gt;%
+#   count(dest_size)</code></pre>
+<p>Para ver los valores incorrectos, usamod el anti join</p>
+<pre class="r"><code># # Find bad dest_size rows
+# sfo_survey %&gt;% 
+#   # Join with dest_sizes data frame to get bad dest_size rows
+#   anti_join(dest_sizes, by=&#39;dest_size&#39;) %&gt;%
+#   # Select id, airline, destination, and dest_size cols
+#   select(id, airline, destination, dest_size)</code></pre>
+<p>Para filtrar por los valores correctos</p>
+<pre class="r"><code># # Remove bad dest_size rows
+# sfo_survey %&gt;% 
+#   # Join with dest_sizes
+#   inner_join(dest_sizes, by=&#39;dest_size&#39;) %&gt;%
+#   # Count the number of each dest_size
+#   count(dest_size)</code></pre>
+</div>
+</div>
+<div id="problemas-con-datos-categoricos" class="section level2">
+<h2>Problemas con datos categoricos</h2>
+<ul>
+<li>Letras mayusculas o minusculas</li>
+<li>Demasiadas categorias para la misma ‘especie’</li>
+<li>Espacios por cada texto</li>
+</ul>
+<p>El primer filtro, puede ser convertir todo a minuscula o
+minuscula</p>
+<pre class="r"><code># # Usando la libreria 
+# library(stringr)
+# 
+# animals %&gt;%
+#   mutate(type_lower = str_to_lower(type))</code></pre>
+<p>Segundo, para eliminar espacios al inicio y al final de la cadena,
+podemos usar la funcion</p>
+<pre class="r"><code># animals %&gt;%
+#   mutate(type_trimmed = str_trim(type_lower))</code></pre>
+<p>Para ver el ‘resultado’ final, podemos contar el tipo de dato y
+ordenarlo</p>
+<pre class="r"><code># animals %&gt;%
+#   count(type_trimmed, sort=TRUE)</code></pre>
+<p>Si quiero evaluar todas las categorias de un df, y cambiar su
+valor</p>
+<pre class="r"><code># # Crear una lista con las categorias que quiero cambiar, o las que quiero asignar un nuevo valor
+# 
+# other_cats = c(&#39;a&#39;, &#39;b&#39;, &#39;c&#39;, etc...)
+# 
+# # Importar la libreria para colapsar todo
+# library(forcats)
+# 
+# # Crea una nueva columa, que evalua la columna con las categorias actuales. Si la categoria actual, contiene uno de los valores de other cats, ese valor lo cambia por other
+# 
+# animals %&gt;% 
+#   mutate(type_collapsed = fct_collapse(type_trimmed, other = other_cats))</code></pre>
+</div>
+<div id="ejercicios-4" class="section level2">
+<h2>Ejercicios</h2>
+<div id="identificando-inconsistencias" class="section level3">
+<h3>Identificando inconsistencias</h3>
+<p>Podemos analizar si el tipo de inconsistencia es por espacios,
+mayusculas, minusculas, etc</p>
+<pre class="r"><code># # Count dest_size
+# sfo_survey %&gt;%
+#   count(dest_size)</code></pre>
+</div>
+<div id="corrigiendo-las-inconsistencias" class="section level3">
+<h3>Corrigiendo las inconsistencias</h3>
+<pre class="r"><code># # Add new columns to sfo_survey
+# sfo_survey &lt;- sfo_survey %&gt;%
+#   # dest_size_trimmed: dest_size without whitespace
+#   mutate(dest_size_trimmed = str_trim(dest_size),
+#          # cleanliness_lower: cleanliness converted to lowercase
+#          cleanliness_lower = str_to_lower(cleanliness))
+# 
+# # Count values of dest_size_trimmed
+# sfo_survey %&gt;%
+#   count(dest_size_trimmed)
+# 
+# # Count values of cleanliness_lower
+# sfo_survey %&gt;%
+#   count(cleanliness_lower)</code></pre>
+</div>
+<div id="colapsando-las-categorias" class="section level3">
+<h3>Colapsando las categorias</h3>
+<p>Colapsar categorias no es mas que decirle que analice una columna, y
+si tiene ese valor, que lo cambie por uno normalizado u otro
+cualquiera.</p>
+<pre class="r"><code># # Count categories of dest_region
+# sfo_survey %&gt;%
+#   count(dest_region)
+# 
+# # Categories to map to Europe
+# europe_categories &lt;- c(&#39;EU&#39;, &#39;Europ&#39;, &#39;eur&#39;)
+# 
+# # Add a new col dest_region_collapsed
+# sfo_survey %&gt;%
+#   # Map all categories in europe_categories to Europe
+#   mutate(dest_region_collapsed = fct_collapse(dest_region, 
+#                                      Europe = europe_categories)) %&gt;%
+#   # Count categories of dest_region_collapsed
+#   count(dest_region_collapsed)</code></pre>
+</div>
+</div>
+<div id="cleaning-text-data" class="section level2">
+<h2>Cleaning text data</h2>
+<p>Son todos los datos de tipo character</p>
+<ul>
+<li>Problemas con formaro y estandarizacion</li>
+<li>Espacios entre numeros</li>
+</ul>
+<p>Para detectar un patron, podemos usar</p>
+<pre class="r"><code># # Devuelve valores logicos
+# str_detect(columna, &#39;valor a detectar&#39;)</code></pre>
+<p>Podemos ver en el dataframe, los valores que siguen ese patron, de la
+forma</p>
+<pre class="r"><code># # Detectar patron de la forma 0000-0000-0000-0000
+# customer %&gt;% # DF
+#   filter(str_detect(credit_card, &#39;-&#39;))</code></pre>
+<p>Se pueden reemplazar los valores que sigan ese patron por otro. Por
+ejemplo, cambiar el ‘-’ por un espacio ’ ’</p>
+<pre class="r"><code># # crea una col, al que se le pasa la funcion str_replace all, que cambia todos los &#39;-&#39; por un espacion &#39; &#39;.
+# customer %&gt;% 
+#   mutate(credit_card_spaces = str_replace_all(credit_card, &#39;-&#39;, &#39; &#39;))</code></pre>
+<p>Si se quisiera normalizar, para no tener espacios ni barras, se puede
+usar</p>
+<pre class="r"><code># # A la columna, a cada valor de esa columna, quita los caracteres - y &#39; &#39;. 
+# credit_card_clean &lt;- customer$credit_card %&gt;%
+#   str_remove_all(&#39;-&#39;) %&gt;%
+#   str_remove_all(&#39; &#39;)
+# 
+# # Una vez los quitas de la columna, esa columna limpia, se reemplaza en el df original
+# 
+# customers %&gt;%
+#   mutate(credit_card = credit_card_clean)</code></pre>
+<p>Si queremos ver valores que no son correctos, sabiendo que tienen
+cierta longitud determinada</p>
+<pre class="r"><code># # De cada valor de la columna, obtiene su longitud 
+# str_length(customer$credit_card)
+# 
+# # Luego muestra cuales no cumplen con la condicion 
+# customer %&gt;%
+#   filter(str_length(credit_card != 16))</code></pre>
+<p>Para dejar limpio el dataframe, con los valores que si cumplen la
+condicion, se puede emplear</p>
+<pre class="r"><code># customer %&gt;%
+#   filter(str_length(credit_card == 16))</code></pre>
+</div>
+<div id="expresiones-regulares" class="section level2">
+<h2>Expresiones regulares</h2>
+<p>So utiles para encontrar patrones dentro de cada texto. Disponible en
+otro curso :)</p>
+</div>
+<div id="ejercicios-5" class="section level2">
+<h2>Ejercicios</h2>
+<pre class="r"><code># # Filter for rows with &quot;-&quot; in the phone column
+# sfo_survey %&gt;%
+#   filter(str_detect(phone, &#39;-&#39;))</code></pre>
+<p>IMPORTANTE: Remember to use fixed() when searching for
+parentheses.</p>
+<pre class="r"><code># # Filter for rows with &quot;(&quot; or &quot;)&quot; in the phone column
+# sfo_survey %&gt;%
+#   filter(str_detect(phone, fixed(&#39;(&#39;)) | str_detect(phone, fixed(&#39;)&#39;)))</code></pre>
+<div id="remover-caracteres-de-una-expresion" class="section level3">
+<h3>Remover caracteres de una expresion</h3>
+<pre class="r"><code># # Remove parentheses from phone column
+# phone_no_parens &lt;- sfo_survey$phone %&gt;%
+#   # Remove &quot;(&quot;s
+#   str_remove_all(fixed(&quot;(&quot;)) %&gt;%
+#   # Remove &quot;)&quot;s
+#   str_remove_all(fixed(&quot;)&quot;))
+# 
+# # Add phone_no_parens as column
+# sfo_survey %&gt;%
+#   mutate(phone_no_parens = phone_no_parens,
+#   # Replace all hyphens in phone_no_parens with spaces
+#          phone_clean = str_replace_all(phone_no_parens, &#39;-&#39;, &#39; &#39;))</code></pre>
+</div>
+<div id="reemplazar-valores-que-no-cumplen-con-una-condicion" class="section level3">
+<h3>Reemplazar valores que no cumplen con una condicion</h3>
+<pre class="r"><code># # Check out the invalid numbers. It must have 12
+# sfo_survey %&gt;%
+#   filter(str_length(phone) != 12)
+# 
+# # Remove rows with invalid numbers
+# sfo_survey %&gt;%
+#   filter(str_length(phone) == 12)</code></pre>
 </div>
 </div>
 </div>

@@ -2,11 +2,12 @@
 title: "Resumen"
 author: "Santi"
 date: "`r Sys.Date()`"
-output: 
-  html_document:
-    #number_sections: true
+output:
+  pdf_document:
     toc: true
-    df_print: paged   
+  html_document:
+    toc: true
+    df_print: paged
 ---
 
 # Cleaning Data in R
@@ -383,6 +384,8 @@ Agregaciones para duplicados parciales
 # select(-duration_min)
 ```
 
+# CAPITULO 2
+
 ## Datos categoricos
 
 - Los datos categoricos tienen valores conocidos 
@@ -407,6 +410,260 @@ Agregaciones para duplicados parciales
 #   semi_join(blood_types, by='blood_type')
 
 ```
+
+## Ejercicios
+
+### Variables categoricas
+
+Para contar las veces en que aparece una variable categórica
+
+```{r}
+# # Count the number of occurrences of dest_size
+# sfo_survey %>%
+#   count(dest_size)
+
+```
+
+Para ver los valores incorrectos, usamod el anti join
+
+```{r}
+# # Find bad dest_size rows
+# sfo_survey %>% 
+#   # Join with dest_sizes data frame to get bad dest_size rows
+#   anti_join(dest_sizes, by='dest_size') %>%
+#   # Select id, airline, destination, and dest_size cols
+#   select(id, airline, destination, dest_size)
+```
+
+Para filtrar por los valores correctos
+
+```{r}
+# # Remove bad dest_size rows
+# sfo_survey %>% 
+#   # Join with dest_sizes
+#   inner_join(dest_sizes, by='dest_size') %>%
+#   # Count the number of each dest_size
+#   count(dest_size)
+```
+
+## Problemas con datos categoricos
+
+- Letras mayusculas o minusculas 
+- Demasiadas categorias para la misma 'especie'
+- Espacios por cada texto
+
+El primer filtro, puede ser convertir todo a minuscula o minuscula
+
+```{r}
+# # Usando la libreria 
+# library(stringr)
+# 
+# animals %>%
+#   mutate(type_lower = str_to_lower(type))
+```
+
+Segundo, para eliminar espacios al inicio y al final de la cadena, podemos usar la funcion 
+
+```{r}
+# animals %>%
+#   mutate(type_trimmed = str_trim(type_lower))
+```
+
+Para ver el 'resultado' final, podemos contar el tipo de dato y ordenarlo
+
+```{r}
+# animals %>%
+#   count(type_trimmed, sort=TRUE)
+```
+
+Si quiero evaluar todas las categorias de un df, y cambiar su valor
+
+```{r}
+# # Crear una lista con las categorias que quiero cambiar, o las que quiero asignar un nuevo valor
+# 
+# other_cats = c('a', 'b', 'c', etc...)
+# 
+# # Importar la libreria para colapsar todo
+# library(forcats)
+# 
+# # Crea una nueva columa, que evalua la columna con las categorias actuales. Si la categoria actual, contiene uno de los valores de other cats, ese valor lo cambia por other
+# 
+# animals %>% 
+#   mutate(type_collapsed = fct_collapse(type_trimmed, other = other_cats))
+```
+
+## Ejercicios 
+
+### Identificando inconsistencias 
+
+Podemos analizar si el tipo de inconsistencia es por espacios, mayusculas, minusculas, etc
+
+```{r}
+# # Count dest_size
+# sfo_survey %>%
+#   count(dest_size)
+```
+
+### Corrigiendo las inconsistencias 
+
+```{r}
+# # Add new columns to sfo_survey
+# sfo_survey <- sfo_survey %>%
+#   # dest_size_trimmed: dest_size without whitespace
+#   mutate(dest_size_trimmed = str_trim(dest_size),
+#          # cleanliness_lower: cleanliness converted to lowercase
+#          cleanliness_lower = str_to_lower(cleanliness))
+# 
+# # Count values of dest_size_trimmed
+# sfo_survey %>%
+#   count(dest_size_trimmed)
+# 
+# # Count values of cleanliness_lower
+# sfo_survey %>%
+#   count(cleanliness_lower)
+```
+
+### Colapsando las categorias 
+
+Colapsar categorias no es mas que decirle que analice una columna, y si tiene ese valor, que lo cambie por uno normalizado u otro cualquiera. 
+
+```{r}
+# # Count categories of dest_region
+# sfo_survey %>%
+#   count(dest_region)
+# 
+# # Categories to map to Europe
+# europe_categories <- c('EU', 'Europ', 'eur')
+# 
+# # Add a new col dest_region_collapsed
+# sfo_survey %>%
+#   # Map all categories in europe_categories to Europe
+#   mutate(dest_region_collapsed = fct_collapse(dest_region, 
+#                                      Europe = europe_categories)) %>%
+#   # Count categories of dest_region_collapsed
+#   count(dest_region_collapsed)
+```
+
+
+## Cleaning text data 
+
+Son todos los datos de tipo character
+
+- Problemas con formaro y estandarizacion
+- Espacios entre numeros 
+
+Para detectar un patron, podemos usar
+
+```{r}
+# # Devuelve valores logicos
+# str_detect(columna, 'valor a detectar')
+```
+
+Podemos ver en el dataframe, los valores que siguen ese patron, de la forma
+
+```{r}
+# # Detectar patron de la forma 0000-0000-0000-0000
+# customer %>% # DF
+#   filter(str_detect(credit_card, '-'))
+```
+
+Se pueden reemplazar los valores que sigan ese patron por otro. Por ejemplo, cambiar el '-' por un espacio ' '
+
+```{r}
+# # crea una col, al que se le pasa la funcion str_replace all, que cambia todos los '-' por un espacion ' '.
+# customer %>% 
+#   mutate(credit_card_spaces = str_replace_all(credit_card, '-', ' '))
+```
+
+Si se quisiera normalizar, para no tener espacios ni barras, se puede usar
+
+```{r}
+# # A la columna, a cada valor de esa columna, quita los caracteres - y ' '. 
+# credit_card_clean <- customer$credit_card %>%
+#   str_remove_all('-') %>%
+#   str_remove_all(' ')
+# 
+# # Una vez los quitas de la columna, esa columna limpia, se reemplaza en el df original
+# 
+# customers %>%
+#   mutate(credit_card = credit_card_clean)
+  
+```
+
+Si queremos ver valores que no son correctos, sabiendo que tienen cierta longitud determinada
+
+```{r}
+# # De cada valor de la columna, obtiene su longitud 
+# str_length(customer$credit_card)
+# 
+# # Luego muestra cuales no cumplen con la condicion 
+# customer %>%
+#   filter(str_length(credit_card != 16))
+
+```
+
+Para dejar limpio el dataframe, con los valores que si cumplen la condicion, se puede emplear 
+
+```{r}
+# customer %>%
+#   filter(str_length(credit_card == 16))
+```
+
+## Expresiones regulares 
+
+So utiles para encontrar patrones dentro de cada texto. Disponible en otro curso :) 
+
+## Ejercicios 
+
+```{r}
+# # Filter for rows with "-" in the phone column
+# sfo_survey %>%
+#   filter(str_detect(phone, '-'))
+```
+
+IMPORTANTE: Remember to use fixed() when searching for parentheses.
+
+```{r}
+# # Filter for rows with "(" or ")" in the phone column
+# sfo_survey %>%
+#   filter(str_detect(phone, fixed('(')) | str_detect(phone, fixed(')')))
+```
+
+### Remover caracteres de una expresion
+
+```{r}
+# # Remove parentheses from phone column
+# phone_no_parens <- sfo_survey$phone %>%
+#   # Remove "("s
+#   str_remove_all(fixed("(")) %>%
+#   # Remove ")"s
+#   str_remove_all(fixed(")"))
+# 
+# # Add phone_no_parens as column
+# sfo_survey %>%
+#   mutate(phone_no_parens = phone_no_parens,
+#   # Replace all hyphens in phone_no_parens with spaces
+#          phone_clean = str_replace_all(phone_no_parens, '-', ' '))
+```
+
+### Reemplazar valores que no cumplen con una condicion 
+
+```{r}
+# # Check out the invalid numbers. It must have 12
+# sfo_survey %>%
+#   filter(str_length(phone) != 12)
+# 
+# # Remove rows with invalid numbers
+# sfo_survey %>%
+#   filter(str_length(phone) == 12)
+```
+
+
+
+
+
+
+
 
 
 
