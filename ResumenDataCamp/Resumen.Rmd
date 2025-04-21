@@ -3,11 +3,11 @@ title: "Resumen"
 author: "Santi"
 date: "`r Sys.Date()`"
 output:
-  pdf_document:
-    toc: true
   html_document:
     toc: true
     df_print: paged
+  pdf_document:
+    toc: true
 ---
 
 # Cleaning Data in R
@@ -657,6 +657,154 @@ IMPORTANTE: Remember to use fixed() when searching for parentheses.
 # sfo_survey %>%
 #   filter(str_length(phone) == 12)
 ```
+
+# CAPITULO 3 
+
+## Uniformidad
+
+- Para diferentes unidades o formatos 
+- Temperatura, pesos, tasas de cambio
+
+## Encontrando valores
+
+Para convertir los valores, podemos usar una formula de conversion, cuando el ejercicio lo permita. 
+
+Implementando la codicion ifelse, tenemos:
+
+```{r}
+# ifelse(condition, value_if_true, value_if_false)
+# 
+# # Si la temperatura es mayor a 50
+# # Aplica la formula para pasar de F a Celsius
+# # si no, deja la temperatura igual 
+# 
+# nyc_temps %>%
+#   mutate(temp_c = ifelse(temp>50, (temp-32)*5/9, temp))
+```
+
+## Uniformidad con fechas 
+
+Para ver los formatos de las fechas
+
+```{r}
+# ?strptime
+```
+
+Para analizar los multiples formatos
+
+```{r}
+# # Orders contiene los formatos diferentes
+# 
+# library(lubridate)
+# parse_date_time(nyc_temps$date, 
+#                 orders = c('%Y-%m-%d', '%m/%d/%y', '%B %d %Y'))
+# 
+# # Esto lo devolvera en un formato yyy-mm-dd
+```
+
+## Ejercicios 
+
+Para considerar, By default, as.Date() can't convert "Month DD, YYYY" formats.
+
+### Uniformidad con fechas 
+
+```{r}
+# # Check out the accounts data frame
+# head(accounts)
+# 
+# # Formato yyyy-mm-dd
+# # Formato Mes dd, yyyy
+# 
+# # Define the date formats
+# formats <- c("%Y-%m-%d", "%B %d, %Y")
+# 
+# # Convert dates to the same format
+# accounts %>%
+#   mutate(date_opened_clean = parse_date_time(date_opened, orders = formats))
+```
+
+### Corrigiendo valor con codicional 
+
+```{r}
+# # Scatter plot of opening date and total amount
+# accounts %>%
+#   ggplot(aes(x = date_opened, y = total)) +
+#   geom_point()
+# 
+# # Left join accounts to account_offices by id
+# accounts %>%
+#   left_join(account_offices, by = "id") %>%
+#   # Convert totals from the Tokyo office to USD
+#   mutate(total_usd = ifelse(office == "Tokyo", total / 104, total)) %>%
+#   # Scatter plot of opening date vs total_usd
+#   ggplot(aes(x = date_opened, y = total_usd)) +
+#     geom_point()
+```
+
+## Cross field validation
+
+- Validacion con numeros 
+
+Sumar todos los numeros y comprobar con la columna total
+
+- Validacion con fechas 
+
+Podemos obtener la diferencia de fechas con
+
+```{r}
+# library(lubridate)
+# 
+# date_difference <- as.Date('2015-09-04') %--% today()
+# date_difference
+# 
+# # Para obtener un valor adecuado
+# 
+# as.numeric(date_difference, 'years')
+# 
+# floor(as.numeric(date_difference, 'years'))
+# 
+# # Podemos hacer la validacion en el dataframe con 
+# 
+# credit_cards %>%
+#   mutate(theor_age = floor(as.numeric(date_opened %--% today(), 'years'))) %>%
+#   filter(theor_age != acct_age)
+
+```
+
+- Se puede eliminar 
+- Input datos 
+
+## Ejercicios 
+
+### Validando totales
+
+```{r}
+# # Find invalid totals
+# accounts %>%
+#   # theoretical_total: sum of the three funds
+#   mutate (theoretical_total = rowSums(.[, 4:6])) %>%
+#   # Find accounts where total doesn't match theoretical_total
+#   filter (theoretical_total != total)
+# 
+# #accounts %>%
+# #  select(starts_with('fund')) %>%
+# #  mutate(theoretical_total = rowSums(.))
+```
+
+### Validando fechas 
+
+```{r}
+# # Find invalid acct_age
+# accounts %>%
+#   # theoretical_age: age of acct based on date_opened
+#   mutate(theoretical_age = floor(as.numeric(date_opened %--% today(), 'years'))) %>%
+#   # Filter for rows where acct_age is different from theoretical_age
+#   filter (theoretical_age != acct_age)
+```
+
+
+
+
 
 
 

@@ -11,7 +11,7 @@
 
 <meta name="author" content="Santi" />
 
-<meta name="date" content="2025-04-20" />
+<meta name="date" content="2025-04-21" />
 
 <title>Resumen</title>
 
@@ -1623,7 +1623,7 @@ display: none;
 
 <h1 class="title toc-ignore">Resumen</h1>
 <h4 class="author">Santi</h4>
-<h4 class="date">2025-04-20</h4>
+<h4 class="date">2025-04-21</h4>
 
 </div>
 
@@ -1703,6 +1703,26 @@ text data</a></li>
 expresion</a></li>
 <li><a href="#reemplazar-valores-que-no-cumplen-con-una-condicion" id="toc-reemplazar-valores-que-no-cumplen-con-una-condicion">Reemplazar
 valores que no cumplen con una condicion</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#capitulo-3" id="toc-capitulo-3">CAPITULO 3</a>
+<ul>
+<li><a href="#uniformidad" id="toc-uniformidad">Uniformidad</a></li>
+<li><a href="#encontrando-valores" id="toc-encontrando-valores">Encontrando valores</a></li>
+<li><a href="#uniformidad-con-fechas" id="toc-uniformidad-con-fechas">Uniformidad con fechas</a></li>
+<li><a href="#ejercicios-6" id="toc-ejercicios-6">Ejercicios</a>
+<ul>
+<li><a href="#uniformidad-con-fechas-1" id="toc-uniformidad-con-fechas-1">Uniformidad con fechas</a></li>
+<li><a href="#corrigiendo-valor-con-codicional" id="toc-corrigiendo-valor-con-codicional">Corrigiendo valor con
+codicional</a></li>
+</ul></li>
+<li><a href="#cross-field-validation" id="toc-cross-field-validation">Cross field validation</a></li>
+<li><a href="#ejercicios-7" id="toc-ejercicios-7">Ejercicios</a>
+<ul>
+<li><a href="#validando-totales" id="toc-validando-totales">Validando
+totales</a></li>
+<li><a href="#validando-fechas" id="toc-validando-fechas">Validando
+fechas</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -2265,6 +2285,135 @@ parentheses.</p>
 # # Remove rows with invalid numbers
 # sfo_survey %&gt;%
 #   filter(str_length(phone) == 12)</code></pre>
+</div>
+</div>
+</div>
+<div id="capitulo-3" class="section level1">
+<h1>CAPITULO 3</h1>
+<div id="uniformidad" class="section level2">
+<h2>Uniformidad</h2>
+<ul>
+<li>Para diferentes unidades o formatos</li>
+<li>Temperatura, pesos, tasas de cambio</li>
+</ul>
+</div>
+<div id="encontrando-valores" class="section level2">
+<h2>Encontrando valores</h2>
+<p>Para convertir los valores, podemos usar una formula de conversion,
+cuando el ejercicio lo permita.</p>
+<p>Implementando la codicion ifelse, tenemos:</p>
+<pre class="r"><code># ifelse(condition, value_if_true, value_if_false)
+# 
+# # Si la temperatura es mayor a 50
+# # Aplica la formula para pasar de F a Celsius
+# # si no, deja la temperatura igual 
+# 
+# nyc_temps %&gt;%
+#   mutate(temp_c = ifelse(temp&gt;50, (temp-32)*5/9, temp))</code></pre>
+</div>
+<div id="uniformidad-con-fechas" class="section level2">
+<h2>Uniformidad con fechas</h2>
+<p>Para ver los formatos de las fechas</p>
+<pre class="r"><code># ?strptime</code></pre>
+<p>Para analizar los multiples formatos</p>
+<pre class="r"><code># # Orders contiene los formatos diferentes
+# 
+# library(lubridate)
+# parse_date_time(nyc_temps$date, 
+#                 orders = c(&#39;%Y-%m-%d&#39;, &#39;%m/%d/%y&#39;, &#39;%B %d %Y&#39;))
+# 
+# # Esto lo devolvera en un formato yyy-mm-dd</code></pre>
+</div>
+<div id="ejercicios-6" class="section level2">
+<h2>Ejercicios</h2>
+<p>Para considerar, By default, as.Date() can’t convert “Month DD, YYYY”
+formats.</p>
+<div id="uniformidad-con-fechas-1" class="section level3">
+<h3>Uniformidad con fechas</h3>
+<pre class="r"><code># # Check out the accounts data frame
+# head(accounts)
+# 
+# # Formato yyyy-mm-dd
+# # Formato Mes dd, yyyy
+# 
+# # Define the date formats
+# formats &lt;- c(&quot;%Y-%m-%d&quot;, &quot;%B %d, %Y&quot;)
+# 
+# # Convert dates to the same format
+# accounts %&gt;%
+#   mutate(date_opened_clean = parse_date_time(date_opened, orders = formats))</code></pre>
+</div>
+<div id="corrigiendo-valor-con-codicional" class="section level3">
+<h3>Corrigiendo valor con codicional</h3>
+<pre class="r"><code># # Scatter plot of opening date and total amount
+# accounts %&gt;%
+#   ggplot(aes(x = date_opened, y = total)) +
+#   geom_point()
+# 
+# # Left join accounts to account_offices by id
+# accounts %&gt;%
+#   left_join(account_offices, by = &quot;id&quot;) %&gt;%
+#   # Convert totals from the Tokyo office to USD
+#   mutate(total_usd = ifelse(office == &quot;Tokyo&quot;, total / 104, total)) %&gt;%
+#   # Scatter plot of opening date vs total_usd
+#   ggplot(aes(x = date_opened, y = total_usd)) +
+#     geom_point()</code></pre>
+</div>
+</div>
+<div id="cross-field-validation" class="section level2">
+<h2>Cross field validation</h2>
+<ul>
+<li>Validacion con numeros</li>
+</ul>
+<p>Sumar todos los numeros y comprobar con la columna total</p>
+<ul>
+<li>Validacion con fechas</li>
+</ul>
+<p>Podemos obtener la diferencia de fechas con</p>
+<pre class="r"><code># library(lubridate)
+# 
+# date_difference &lt;- as.Date(&#39;2015-09-04&#39;) %--% today()
+# date_difference
+# 
+# # Para obtener un valor adecuado
+# 
+# as.numeric(date_difference, &#39;years&#39;)
+# 
+# floor(as.numeric(date_difference, &#39;years&#39;))
+# 
+# # Podemos hacer la validacion en el dataframe con 
+# 
+# credit_cards %&gt;%
+#   mutate(theor_age = floor(as.numeric(date_opened %--% today(), &#39;years&#39;))) %&gt;%
+#   filter(theor_age != acct_age)</code></pre>
+<ul>
+<li>Se puede eliminar</li>
+<li>Input datos</li>
+</ul>
+</div>
+<div id="ejercicios-7" class="section level2">
+<h2>Ejercicios</h2>
+<div id="validando-totales" class="section level3">
+<h3>Validando totales</h3>
+<pre class="r"><code># # Find invalid totals
+# accounts %&gt;%
+#   # theoretical_total: sum of the three funds
+#   mutate (theoretical_total = rowSums(.[, 4:6])) %&gt;%
+#   # Find accounts where total doesn&#39;t match theoretical_total
+#   filter (theoretical_total != total)
+# 
+# #accounts %&gt;%
+# #  select(starts_with(&#39;fund&#39;)) %&gt;%
+# #  mutate(theoretical_total = rowSums(.))</code></pre>
+</div>
+<div id="validando-fechas" class="section level3">
+<h3>Validando fechas</h3>
+<pre class="r"><code># # Find invalid acct_age
+# accounts %&gt;%
+#   # theoretical_age: age of acct based on date_opened
+#   mutate(theoretical_age = floor(as.numeric(date_opened %--% today(), &#39;years&#39;))) %&gt;%
+#   # Filter for rows where acct_age is different from theoretical_age
+#   filter (theoretical_age != acct_age)</code></pre>
 </div>
 </div>
 </div>
