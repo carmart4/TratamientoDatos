@@ -509,7 +509,14 @@ valores para no hacer el map de la unidad 2</a></li>
 <li><a href="#ejercicios-9" id="toc-ejercicios-9">Ejercicios</a></li>
 <li><a href="#generando-y-comparando-pares" id="toc-generando-y-comparando-pares">Generando y comparando
 pares</a></li>
-<li><a href="#ejercicios-10" id="toc-ejercicios-10">Ejercicios</a></li>
+<li><a href="#ejercicios-10" id="toc-ejercicios-10">Ejercicios</a>
+<ul>
+<li><a href="#hacer-todas-las-comparaciones-posibles-entre-los-datos" id="toc-hacer-todas-las-comparaciones-posibles-entre-los-datos">Hacer
+todas las comparaciones posibles entre los datos</a></li>
+<li><a href="#comparar-pares-usando-un-metodo-de-comparacion" id="toc-comparar-pares-usando-un-metodo-de-comparacion">Comparar pares
+usando un metodo de comparacion</a></li>
+</ul></li>
+<li><a href="#puntuando-y-uniendo" id="toc-puntuando-y-uniendo">Puntuando y uniendo</a></li>
 </ul></li>
 </ul>
 </div>
@@ -1464,6 +1471,56 @@ coincidencia.</p>
 </div>
 <div id="ejercicios-10" class="section level2">
 <h2>Ejercicios</h2>
+<pre class="r"><code># f1 &lt;- &#39;CleaningData/zagat.rds&#39;
+# zagat &lt;- readRDS(file = f1)
+# 
+# f2 &lt;- &#39;CleaningData/fodors.rds&#39;
+# fodors &lt;- readRDS(file = f2)</code></pre>
+<div id="hacer-todas-las-comparaciones-posibles-entre-los-datos" class="section level3">
+<h3>Hacer todas las comparaciones posibles entre los datos</h3>
+<pre class="r"><code># # Load reclin
+# library(reclin)
+# 
+# # Generate pairs with same city
+# pair_blocking(zagat, fodors, blocking_var=&#39;city&#39;)</code></pre>
+</div>
+<div id="comparar-pares-usando-un-metodo-de-comparacion" class="section level3">
+<h3>Comparar pares usando un metodo de comparacion</h3>
+<p>Comparar pares por ‘name’ usando lcs.</p>
+<pre class="r"><code># # Generate pairs
+# pair_blocking(zagat, fodors, blocking_var = &quot;city&quot;) %&gt;%
+#   # Compare pairs by name using lcs()
+#   compare_pairs(by = &#39;name&#39;,
+#       default_comparator = lcs())</code></pre>
+<p>Comparar por ‘name’, ‘phone’, and ‘addr’ usango jaro_winkler.</p>
+<pre class="r"><code># # Generate pairs
+# pair_blocking(zagat, fodors, blocking_var = &quot;city&quot;) %&gt;%
+#   # Compare pairs by name, phone, addr
+#   compare_pairs(by=c(&#39;name&#39;, &#39;phone&#39;, &#39;addr&#39;),
+#       default_comparator=jaro_winkler())</code></pre>
+</div>
+</div>
+<div id="puntuando-y-uniendo" class="section level2">
+<h2>Puntuando y uniendo</h2>
+<p>Calcular el score por cada fila</p>
+<ul>
+<li>Limpiar los datasets</li>
+<li>Generar los pares. Compara df_a y df_b</li>
+<li>Comparar columnas por cada par</li>
+<li>Da valor usando summing o la probabilidad</li>
+<li>Selecciona los pares que mejor hacen match</li>
+<li>Link los datasets unidos</li>
+</ul>
+<pre class="r"><code># # Create pairs
+# pair_blocking(zagat, fodors, blocking_var = &quot;city&quot;) %&gt;%
+#   # Compare pairs
+#   compare_pairs(by = c(&quot;name&quot;, &quot;addr&quot;), default_comparator = jaro_winkler()) %&gt;%
+#   # Score pairs
+#   score_problink() %&gt;%
+#   # Select pairs
+#   select_n_to_m() %&gt;%
+#   # Link data 
+#   link()</code></pre>
 </div>
 </div>
 

@@ -4,16 +4,16 @@ subtitle: "Tratamiento de Datos. Grado en Ciencia de Datos - UV"
 author: "Carlos Santiago Martinez Torres"
 date: "`r Sys.Date()`"
 output:
-  html_document:
-    echo: true
-    # number_sections: true
-    theme: lumen
-    toc: true
   pdf_document:
     toc: true
     toc_depth: 3
     df_print: paged
     # number_sections: true
+  html_document:
+    echo: true
+    # number_sections: true
+    theme: lumen
+    toc: true
 params:
   lang: ES
 lang: "`r switch(params$lang, ES = 'es-ES', EN = 'en-US')`"
@@ -1073,6 +1073,8 @@ Ahora que los valores estan comparados, se seleccionan los de mayor coincidencia
 # fodors <- readRDS(file = f2)
 ```
 
+
+
 ### Hacer todas las comparaciones posibles entre los datos 
 
 ```{r}
@@ -1105,6 +1107,8 @@ Comparar por 'name', 'phone', and 'addr' usango jaro_winkler.
 #       default_comparator=jaro_winkler())
 ```
 
+# CAPITULO 4
+
 ## Puntuando y uniendo 
 
 Calcular el score por cada fila 
@@ -1128,35 +1132,3 @@ Calcular el score por cada fila
 #   # Link data 
 #   link()
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
