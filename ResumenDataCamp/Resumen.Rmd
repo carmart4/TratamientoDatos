@@ -1,22 +1,54 @@
 ---
-title: "Resumen"
-author: "Santi"
+title: "Resumen de R"
+subtitle: "Tratamiento de Datos. Grado en Ciencia de Datos - UV"
+author: "Carlos Santiago Martinez Torres"
 date: "`r Sys.Date()`"
 output:
+  html_document:
+    echo: true
+    # number_sections: true
+    theme: lumen
+    toc: true
   pdf_document:
     toc: true
-  html_document:
-    toc: true
+    toc_depth: 3
     df_print: paged
+    # number_sections: true
+params:
+  lang: ES
+lang: "`r switch(params$lang, ES = 'es-ES', EN = 'en-US')`"
 ---
+
+# Antes de empezar 
+
+Siempre usar pacman para cargar las librerias
+
+```{r, message=FALSE, warning=FALSE}
+# Asegurarse de que el paquete "pacman" está instalado
+if (!require("pacman")) install.packages("pacman")
+```
+
+Listado de librerias que se han implementado a lo largo del curso
+
+```{r}
+pacman::p_load(tidyverse, readxl, lubridate, visdat, stringdist, fuzzyjoin, reclin)
+
+# Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
+# readxl, libreria que requiere una carga aparte explícita
+# lubridate, se utiliza con frecuencia con paquetes de tidyverse, pero requiere una carga aparte
+# visdat, exploracion visual de los datos 
+# stringdist: Approximate String Matching, Fuzzy Text Search, and String Distance Functions
+# Fuzzyjoin, para unir df's por medio de string distances
+# reclin, para pares de datos. Record Linkage
+```
 
 # Cleaning Data in R
 
 # CAPITULO 1
 
 ```{r}
-library(dplyr)
-library(stringr)
+# library(dplyr)
+# library(stringr)
 ```
 
 Problemas comunes que se pueden tener con los datos cuando no están limpios. Por que limpiarlos? Porque el error aparece al inicio de los datos. Es decir:
@@ -139,8 +171,8 @@ Para saber en que libreria se encuentra un dataset, podemos usar la funcion
 ## Rango de los valores - limitaciones de los rangos -. 
 
 ```{r}
-library(ggplot2)
-library(ggplot2movies)
+# library(ggplot2)
+# library(ggplot2movies)
 # install.packages('ggplot2movies')
 ```
 
@@ -209,7 +241,7 @@ Usando la funcion replace
 ## Limitaciones con tipo de dato FECHA
 
 ```{r}
-library(lubridate)
+# library(lubridate)
 ```
 
 
@@ -801,6 +833,319 @@ Podemos obtener la diferencia de fechas con
 #   # Filter for rows where acct_age is different from theoretical_age
 #   filter (theoretical_age != acct_age)
 ```
+
+## Datos incompletos 
+
+- NA, nan, 0, 99
+
+Para encontrar valores faltantes, podemos usar
+
+```{r}
+# # Devuelve valores logicos
+# is.na(airquality)
+# 
+# # Para obtener el total de valores se puede hacer la suma
+# sum(is.na(airquality))
+```
+Para visualizar los valores faltantes, existe la libreria siguiente
+
+```{r}
+# library(dplyr)
+# library(visdat)
+vis_miss(airquality)
+```
+
+## Analizando los valores faltanes
+
+```{r}
+airquality %>% 
+  
+  # Crear una columna que indica si otra columa tiene valor nulo o no 
+  mutate(miss_ozone = is.na(Ozone)) %>%
+  
+  # Agrupa los datos por la columna creada, entre TRUE y FALSE 
+  group_by(miss_ozone)  %>%
+  
+  # Por cada valor, TRUE o FALSE, halla la media de cada columna 
+  summarise(across(everything(), median, na.rm=TRUE))
+```
+
+Para interpretar mejor los valores faltantes, los podemos organizar por una variable
+
+```{r}
+airquality %>%
+  arrange(Ozone) %>%
+  vis_miss()
+```
+
+## Tipos de datos faltantes 
+
+### Missing Completely at Random (MCAR)
+
+No hay una relacion entre los datos perdidos y los otros valores. 
+
+- Errores en la entrada de datos 
+
+### Missing at Random (MAR)
+
+Relacion sistematica entre los valores faltantes y otros valores observados 
+
+- Los datos perdidos de 'ozone' para temperaturas altas en el ejercicio anterior
+
+### Missing Not at Random (MNAR)
+
+Relacion directa entre los valores faltantes y los otros valores no observados 
+
+- Datos perdidos para temperaturas muy altas 
+
+## Tratando con valores faltantes 
+
+- Eliminar 
+- Imputar valores estadisticos 
+
+## Eliminando valores faltantes 
+
+```{r}
+airquality %>%
+  filter(!is.na(Ozone), !is.na(Solar.R)) %>%
+  head(5)
+```
+
+## Reemplazado valores faltantes
+
+```{r}
+airquality %>%
+  # Crea una columna para calcular valores faltantes
+  # ifelse(condition, value_if_true, value_if_false)
+  mutate(ozone_filled = ifelse(is.na(Ozone), mean(Ozone, na.rm=TRUE), Ozone)) %>%
+  
+  mutate(ozone_filled = round(x=ozone_filled, digits = 2)) %>%
+  
+  head(5)
+```
+
+## Ejercicios 
+
+- Visualizar los valores faltantes de un conjunto 
+- Crear una columna con valores logicos para saber si una columna tiene valores falsos o no
+- Agrupar por una columna para aplicar una funcion de agregacion 
+
+```{r}
+# # Visualize the missing values by column
+# vis_miss(accounts)
+# 
+# accounts %>%
+#   # missing_inv: Is inv_amount missing?
+#   mutate(missing_inv = is.na(inv_amount)) %>%
+#   # Group by missing_inv
+#   group_by(missing_inv) %>%
+#   # Calculate mean age for each missing_inv group
+#   summarize(avg_age = mean(age))
+# 
+# # Sort by age and visualize missing vals
+# accounts %>%
+#   arrange(age) %>%
+#   vis_miss()
+```
+
+- Dejar un set de datos limpios, con valores NA reemplazados con valores estadisticos 
+- Verificar/Assert que los valores de una columna contienen nulos 
+
+```{r}
+# # Create accounts_clean
+# accounts_clean <- accounts %>%
+#   # Filter to remove rows with missing cust_id
+#   filter(!is.na(cust_id)) %>%
+#   # Add new col acct_amount_filled with replaced NAs
+#   mutate(acct_amount_filled = ifelse(is.na(acct_amount), inv_amount * 5, acct_amount))
+# 
+# # Assert that cust_id has no missing vals
+# assert_all_are_not_na(accounts_clean$cust_id)
+# 
+# # Assert that acct_amount_filled has no missing vals
+# assert_all_are_not_na(accounts_clean$acct_amount_filled)
+```
+
+## Comparando strings 
+
+- Cambiar los valores de una palabra. Eliminar, insertar, cambiar o intercambiar. 
+
+## Metodos para editar distancias 
+
+- Damerau-Levenshtein: insertar, eliminar, sustituir, trasponer (cambiar posicion) - ORDEN CORRECTO
+- Levenshtein: solo sustituir, insertar y eliminar
+- LCS(Logest common Subsequence): solo inserta y elimina 
+. Others
+
+```{r}
+# library(stringdist)
+# Damerau-Levenshtein
+stringdist(a='baboon', b='typhoon', method='dl')
+
+# Inserta h           (babhoon)
+# Sustituye b por t   (tabhoon)
+# Sustituye a por y   (tybhoon)
+# Sustituye b por p   (typhoon)
+```
+Ejemplos con otros metodos 
+
+```{r}
+# LCS
+stringdist(a='baboon', b='typhoon', method='lcs')
+
+# Jaccard # Escala de 0 a 1
+stringdist(a='baboon', b='typhoon', method='jaccard')
+```
+## Comparando valores para no hacer el map de la unidad 2 
+
+```{r}
+# df survey
+# city, move_score
+
+# df citiies
+# city
+```
+
+Usando la libreria fuzzyjoin, se podra hacer la union de los dos dataframe, por medio de la distancia de los strings 
+
+```{r}
+# # library(fuzzyjoin)
+# stringdist_left_join(survey, cities, by='city', method='dl')
+# 
+# # Se puede pasar el argumento max_dist para ser mas precisos con el match
+# stringdist_left_join(survey, cities, by='city', method='dl', max_dist=1)
+```
+
+## Ejercicios 
+
+```{r}
+# f1 <- 'CleaningData/zagat.rds'
+# zagat <- readRDS(file = f1)
+```
+- Contar los valores de cada ciudad. Variaciones de los nombres 
+- Hacer un join con string distance 
+
+```{r}
+# # Count the number of each city variation
+# zagat %>%
+#   count(city)
+# 
+# # Join zagat and cities and look at results
+# zagat %>%
+#   # Left join based on stringdist using city and city_actual cols
+#   stringdist_left_join(cities, by = c('city' = 'city_actual')) %>%
+#   # Select the name, city, and city_actual cols
+#   select(name, city, city_actual)
+```
+
+## Generando y comparando pares
+
+Record linkage: Se trata de limpiar los dos datasets, generar pares, comparar los pares y unir los pares que tengan mayor coincidencia.
+
+```{r}
+# Para analizar los pares:
+# library(reclin)
+# pair_blocking (df_a, df_b)
+
+# Usando blocking, se reduce el tamaño de comparacion de los datos. Es decir, se deja una variable 'fija'.
+# pair_blocking (df_a, df_b, blocking_var = 'state')
+```
+
+Ahora que los valores estan comparados, se seleccionan los de mayor coincidencia.
+
+```{r}
+# By, la columna que queremos comparar
+# default, el metodo para comparar
+
+# pair_blocking (df_a, df_b, blocking_var = 'state') %>%
+#   compare_pairs(by='name', default_comparator=lcs())
+
+# Los comparadores pueden ser lcs(), jaccard(), jaro_winkler()
+```
+
+## Ejercicios 
+
+```{r}
+# f1 <- 'CleaningData/zagat.rds'
+# zagat <- readRDS(file = f1)
+# 
+# f2 <- 'CleaningData/fodors.rds'
+# fodors <- readRDS(file = f2)
+```
+
+### Hacer todas las comparaciones posibles entre los datos 
+
+```{r}
+# # Load reclin
+# library(reclin)
+# 
+# # Generate pairs with same city
+# pair_blocking(zagat, fodors, blocking_var='city')
+```
+
+### Comparar pares usando un metodo de comparacion
+
+Comparar pares por 'name' usando lcs.
+
+```{r}
+# # Generate pairs
+# pair_blocking(zagat, fodors, blocking_var = "city") %>%
+#   # Compare pairs by name using lcs()
+#   compare_pairs(by = 'name',
+#       default_comparator = lcs())
+```
+
+Comparar por 'name', 'phone', and 'addr' usango jaro_winkler.
+
+```{r}
+# # Generate pairs
+# pair_blocking(zagat, fodors, blocking_var = "city") %>%
+#   # Compare pairs by name, phone, addr
+#   compare_pairs(by=c('name', 'phone', 'addr'),
+#       default_comparator=jaro_winkler())
+```
+
+## Puntuando y uniendo 
+
+Calcular el score por cada fila 
+
+- Limpiar los datasets
+- Generar los pares. Compara df_a y df_b
+- Comparar columnas por cada par
+- Da valor usando summing o la probabilidad
+- Selecciona los pares que mejor hacen match
+- Link los datasets unidos
+
+```{r}
+# # Create pairs
+# pair_blocking(zagat, fodors, blocking_var = "city") %>%
+#   # Compare pairs
+#   compare_pairs(by = c("name", "addr"), default_comparator = jaro_winkler()) %>%
+#   # Score pairs
+#   score_problink() %>%
+#   # Select pairs
+#   select_n_to_m() %>%
+#   # Link data 
+#   link()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
