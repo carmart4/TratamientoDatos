@@ -1,0 +1,306 @@
+---
+title: "Practica 1 - Importacion de ficheros en R"
+author: "Carlos Santiago Martinez Torres"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: 
+    toc: yes    
+    number_sections: no
+  html_document:
+    toc: yes
+    number_sections: no
+---
+
+# Configuracion inicial
+
+```{r entorno}
+# Limpiar el entorno
+rm(list = ls())
+```
+
+```{r pacman, message=FALSE, warning=FALSE}
+# Instalacion de librerias con pacman
+
+# Asegurarse de que el paquete 'pacman' está instalado
+if (!require("pacman")) install.packages("pacman")
+
+# Poner las librerias necesarias 
+pacman::p_load(tidyverse, readxl, lubridate, knitr, tinytex, haven, jsonlite)
+
+# Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
+# readxl, libreria que requiere una carga aparte explícita
+# lubridate, se utiliza con frecuencia con paquetes de tidyverse, pero requiere una carga aparte
+# tinytex, para LaTex
+# haven, para read files with `read_sav`
+# jsonlite, trabajar con ficheros JSON
+```
+
+# Ejemplo 'DFP1_11122015 124700.csv'
+
+## Importacion de fichero
+
+```{r}
+# Si estoy en la carpeta que contiene la carpeta data,
+# solo usar 'data/'. No es necesario el '/' al inicio. 
+carpeta <- 'data/'
+
+fichero <- 'DFP1_11122015 124700.csv'
+
+# Paste0 es una concatenacion pegada
+# Paste personaliza el separador
+f1 <- paste0(carpeta, fichero)
+
+# ?read.csv
+df1 <- read.csv(file = f1, 
+                header = TRUE, 
+                stringsAsFactors = FALSE, 
+                sep = '\t')
+```
+
+## Verificacion de los datos importados 
+
+```{r}
+str(df1)
+```
+
+### Actualizacion de tipo de dato para fecha y hora 
+
+```{r}
+# Hacemos uso de la tuberia 
+df1 <- df1 %>%
+  mutate(Fecha = as.Date(x = FECHA, format = '%d/%m/%Y'),
+         Hora = hms(x = HORA)) %>% # hms::as_hms
+  select(Fecha, Hora, Altura, Combinacion_Canya, Temperatura) # Select (-FECHA, -HORA). Select es para organizar df
+
+
+# Verificamos los datos 
+str(df1)
+```
+
+### Anotacion importante para fechas - TEMA 4
+
+```{r}
+# Fechas - as.Date()
+
+# Numero de dias/meses/anios
+# 1970-01-01
+
+# Fechas + Horas - as.POSIXct() 
+
+# Numero de horas/minutos/segundos
+# 1970-01-01 01:00:00
+
+# Fechas + Horas + TimeZone - as.POSIXlt() 
+
+# Valores de fecha/hora como una lista de componentes 
+```
+
+### Formato para las fechas 
+
+```{r}
+# DIAS 
+# %d - dia como numero, de 01 a 31 
+# %a - nombre del dia abreviado, Mon
+# %A - nombre completo del dia, Monday
+
+# MESES
+# %m - mes como numero, 00 a 12 
+# %b - nombre del mes abreviado, Jan
+# %B - nombre completo del mes, January
+
+# ANIO
+# %y - dos digitos del anio, 07
+# %Y - anio completo, 2007 
+
+# EJEMPLOS
+fecha <- '08-01-1988' # La fecha esta como char
+
+formatoDate <- as.Date(x = fecha, format = '%d-%m-%Y') # Debe ir '-', que es el formato en que esta; no el que quiero. 
+formatoDate
+
+# Una vez que está como Date
+format(x = formatoDate, format = 'She was born on %B %d del %y')
+format(x = formatoDate, format = 'Dia de nac %A')
+
+# Otros ejemplos
+fecha <- '8 enero 88'
+dmy(fecha)
+format(dmy(fecha), format = '%d/%m/%Y')
+
+```
+
+## Guardar el fichero con save
+
+```{r}
+# save(ob1, obj2, objn, file = 'nombrefichero.RData')
+f1_salida <- 'dfp1.RData'
+f1_salida <- paste0(carpeta, f1_salida)
+save(df1, file = f1_salida)
+```
+
+# Ejemplo 'BreadBasket_DMS.csv'
+
+## Importacion de fichero 
+
+```{r}
+fichero2 <- 'BreadBasket_DMS.csv'
+f2 <- paste0(carpeta, fichero2)
+
+df2 <- read.csv(file = f2, 
+                header = TRUE,
+                stringsAsFactors = FALSE)
+```
+
+## Guardar el fichero con save
+
+```{r}
+f2_salida <- 'bread.RData'
+f2_salida <- paste0(carpeta, f2_salida)
+save(df1, file = f2_salida)
+```
+
+# Ejemplo 'PsychBike.sav'
+
+## Importacion de fichero
+
+```{r}
+fichero3 <- 'PsychBike.sav'
+f3 <- paste0(carpeta, fichero3)
+
+df3 <- read_sav(file = f3)
+```
+
+## Guardar el fichero con save
+
+```{r}
+f3_salida <- 'bikes.RData'
+f3_salida <- paste0(carpeta, f3_salida)
+save(df1, file = f3_salida)
+```
+
+# Ejemplo 'FileCodificado.json'
+
+## Importacion de fichero
+
+```{r}
+ficheroJSON <- 'FileCodificado.json'
+fjson <- paste0(carpeta, ficheroJSON)
+
+# Si no simplifyVector, importa lista de listas por cada registro
+# fjson <- read_json(path = fjson)
+dfjson <- read_json(path = fjson, simplifyVector = TRUE)
+```
+
+## Guardar el fichero con save
+
+```{r}
+fjson_salida <- 'FileCodificado.RData'
+fjson_salida <- paste0(carpeta, fjson_salida)
+save(dfjson, file = fjson_salida)
+```
+
+## Exportar datos en formato JSON
+
+```{r}
+# Prueba con el conjunto Iris de R
+# El conjunto iris ya esta cargado en R
+
+irisJSON <- paste0(carpeta, 'iris.json')
+write_json(x = iris, path = irisJSON)
+```
+
+# Ejemplo 'ERCA.xlsx'
+
+## Importacion de fichero 
+
+```{r, warning=FALSE, message=FALSE}
+fichero4 <- 'ERCA.xlsx'
+f4 <- paste0(carpeta, fichero4)
+
+df4 <- read_excel(path = f4, sheet = 2) # El formato del fichero no es correcto
+
+# Si usamos el import del entorno, tenemos esto
+ERCA <- read_excel("data/ERCA.xlsx", sheet = "Hoja1 - Tabla 1", 
+    col_types = c("numeric", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "numeric", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text"))
+```
+
+## Guardar el fichero con save
+
+```{r}
+f4_salida <- 'ERCA.RData'
+f4_salida <- paste0(carpeta, f4_salida)
+save(ERCA, file = f4_salida)
+```
+
+# Ejemplo 'subjectInfo.xlsx'
+
+## Importacion del fichero 
+
+```{r}
+fichero5 <- 'subjectInfo.xlsx'
+f5 <- paste0(carpeta, fichero5)
+
+# Lectura de cada hoja hasta la cuarta 
+hoja1 <- read_excel(path = f5, sheet = 1)
+hoja2 <- read_excel(path = f5, sheet = 2)
+hoja3 <- read_excel(path = f5, sheet = 3)
+hoja4 <- read_excel(path = f5, sheet = 4)
+
+# Todas las hojas automaticamente 
+
+# Obtener el nombre de las hojas del fichero excel
+sheets <- excel_sheets(path = f5)
+
+# Guardar los nombres en una lista 
+df_excel <- list() 
+
+for (n in 1:length(sheets)){
+  df_excel[[n]] <- sheets[n]
+}
+
+df_excel
+
+# Hacer lo mismo con lapply
+# lapply, aplica una funcion a todos los elementos de un vector o una lista, y devuelve una lista con los resultados 
+
+# Funcion que lee una hora de un ficheo, pasando como argumento el nombre de la hoja
+read_sheet <- function(sheet_name) {
+  read_excel(path = f5, sheet = sheet_name)
+}
+
+# A cada hoja que hay en sheets (nombres de las hojas de f5), aplica la funcion anterior
+x <- lapply(sheets, read_sheet) # Lista de dataframes
+
+names(x) <- sheets # Cada dataframe tiene el nombre correspondiente a la hoja
+
+```
+
+## Guardar el fichero con save
+
+```{r}
+f5_salida <- 'FicheroExcel.RData'
+f5_salida <- paste0(carpeta, f5_salida)
+save(x, file = f5_salida)
+```
+
+
+
+
+
+
+
+
+
+

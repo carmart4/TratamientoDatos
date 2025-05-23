@@ -1,0 +1,41 @@
+---
+title: "Plantilla"
+author: "Carlos Santiago Martinez Torres"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    number_sections: no
+  pdf_document: 
+    toc: yes    
+    number_sections: no
+---
+
+# Configuracion inicial
+
+```{r entorno, include=FALSE}
+# Limpiar el entorno
+rm(list = ls())
+```
+
+```{r pacman, include=FALSE, message=FALSE, warning=FALSE}
+# Instalacion de librerias con pacman
+
+# Asegurarse de que el paquete 'pacman' está instalado
+if (!require("pacman")) install.packages("pacman")
+
+# Poner las librerias necesarias 
+pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, patchwork, cowplot, gridExtra, corrplot, haven)
+
+# Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
+# readxl, libreria que requiere una carga aparte explícita
+# lubridate, se utiliza con frecuencia con paquetes de tidyverse, pero requiere una carga aparte
+# jsonlite, trabajar con ficheros JSON
+# visdat, exploracion visual de los datos 
+# tinytex, para LaTex
+# patchwork, para la union de graficos
+# cowplot, alineacion de gráficos
+# gridExtra, para visualizacion 
+# haven, para read files with `read_sav`
+```
+
