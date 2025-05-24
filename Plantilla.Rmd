@@ -18,6 +18,7 @@ output:
 rm(list = ls())
 
 # Configuraciones chunk
+
 # eval = FALSE evita que el código se ejecute
 
 # include = FALSE evita que el código y los resultados aparezcan en el archivo terminado. 
@@ -47,4 +48,20 @@ pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, p
 # gridExtra, para visualizacion 
 # haven, para read files with `read_sav`
 ```
+
+# Carpetas de interes
+
+```{r}
+# Creamos directorio data si no existe, para guardar los ficheros
+if (!file.exists('data')) { dir.create('data') }
+
+# Creamos directorio figure si no existe, para guardar las figuras
+if (!file.exists('figure')) { dir.create('figure') }
+
+# Creamos los accesos a cada carpeta
+datos <- 'data/'
+figuras <- 'figure/'
+```
+
+
 

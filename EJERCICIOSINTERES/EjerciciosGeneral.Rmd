@@ -1,0 +1,183 @@
+---
+title: "Ejercicios en clase"
+author: "Carlos Santiago Martinez Torres"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: 
+    toc: yes    
+    number_sections: no
+  html_document:
+    toc: yes
+    number_sections: no
+---
+
+# Configuracion inicial
+
+```{r entorno, include=FALSE}
+# Limpiar el entorno
+rm(list = ls())
+
+# Configuraciones chunk
+
+# eval = FALSE evita que el código se ejecute
+
+# include = FALSE evita que el código y los resultados aparezcan en el archivo terminado. 
+# R Markdown aún ejecuta el código en el fragmento y los resultados pueden ser utilizados por otros fragmentos.
+
+# echo = FALSE evita que el código, pero no los resultados, aparezcan en el archivo terminado. 
+# Esta es una manera útil de incrustar figuras.
+```
+
+```{r pacman, include=FALSE, message=FALSE, warning=FALSE}
+# Instalacion de librerias con pacman
+
+# Asegurarse de que el paquete 'pacman' está instalado
+if (!require("pacman")) install.packages("pacman")
+
+# Poner las librerias necesarias 
+pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, patchwork, cowplot, gridExtra, corrplot, haven)
+
+# Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
+# readxl, libreria que requiere una carga aparte explícita
+# lubridate, se utiliza con frecuencia con paquetes de tidyverse, pero requiere una carga aparte
+# jsonlite, trabajar con ficheros JSON
+# visdat, exploracion visual de los datos 
+# tinytex, para LaTex
+# patchwork, para la union de graficos
+# cowplot, alineacion de gráficos
+# gridExtra, para visualizacion 
+# haven, para read files with `read_sav`
+```
+
+# Carpetas
+
+```{r}
+# Creamos directorio data si no existe, para guardar los ficheros
+if (!file.exists('data')) { dir.create('data') }
+
+# Creamos directorio figure si no existe, para guardar las figuras
+if (!file.exists('figure')) { dir.create('figure') }
+
+# Creamos los accesos a cada carpeta
+datos <- 'data/'
+figuras <- 'figure/'
+```
+
+# Ejercicio Tema 4. tidy iris.
+
+## Carga del conjunto
+
+```{r}
+# Ya está en r. Lo trabajamos con otra variable
+dfiris <- iris
+```
+
+## Numero de registros y tipos de variables 
+
+```{r}
+str(dfiris)
+# glimpse(df)
+# dim(df)
+```
+
+## Variables perdidas. NA.
+
+```{r}
+sum(is.na(dfiris))
+```
+
+## Transformaciones
+
+```{r}
+# Pasar a conjunto tidy
+# dfiris <- pivot_longer(data = dfiris, names_to = 'Parte', values_to = 'Valor', -Species)
+dfiris <- dfiris %>%
+  pivot_longer(data = ., names_to = 'Parte', values_to = 'Valor', -Species)
+
+# Separar las columnas y organizar 
+# ?separate()
+dfiris <- dfiris %>%
+  separate(data = ., col = Parte, into = c('ParteFlor', 'TipoMedida'), sep = '[.]') %>%
+  select(ParteFlor, TipoMedida, Valor, Species)
+
+# Verificamos el conjunto 
+head(dfiris)
+```
+
+# Ejercicio Tema 4. Baby boom.
+
+## Lectura de fichero
+
+```{r message=FALSE, warning=FALSE}
+f <- paste0(datos, 'children_per_woman_total_fertility.csv')
+df <- read_csv(file = f, show_col_types = FALSE)
+```
+
+## Numero de registros y tipos de variables 
+
+```{r}
+# str(df)
+# glimpse(df)
+dim(df)
+```
+
+## Variables perdidas. NA.
+
+```{r}
+sum(is.na(df))
+```
+
+## Transformaciones
+
+```{r}
+# Convertir a un conjunto tidy
+df <- pivot_longer(data = df, names_to = 'Year', values_to = 'Value', cols = -country) # Hacerlo una vez para evitar errores
+```
+
+```{r}
+# Verificacion de valores  
+str(df) # El año no es necesario cambiarlo porque no operaremos aritmeticamente con el
+
+# Actualizamos para trabajar mejor los filtros 
+df <- df %>%
+  mutate(Year = as.integer(Year)) %>% # Cambiamos el tipo de dato 
+  rename(Country = country) %>% # Cambiamos 'country' a 'Country'
+  select(Country, Year, Value) # Seleccionamos en orden para organizar
+```
+
+## Representacion
+
+```{r}
+# Representacion 1
+df %>%
+  filter(Year >= 1945 & Year <= 2025) %>%
+  filter(Country %in% c('Spain', 'France', 'Germany', 'Portugal', 'Italy')) %>%
+  ggplot(data = ., mapping = aes(x = Year, y = Value, group = Country, color = Country)) +
+  geom_line() + 
+  geom_point(data = ~filter(., Year >= 1960 & Year <= 1970)) + # Para añadir puntos de 1960 a 1980
+  labs(title = 'Babies per woman',
+       x = 'Year', 
+       y = 'Fertility')
+
+
+# Representacion 2
+df %>%
+  filter(Year >= 1945 & Year <= 2025) %>%
+  filter(Country %in% c('Spain', 'France', 'Germany', 'Portugal', 'Italy')) %>%
+  ggplot(data = ., mapping = aes(x = Year, y = Value, group = Country, color = Country)) +
+  # geom_line() + 
+  # geom_point(data = ~filter(., Year >= 1960 & Year <= 1970)) + # Para añadir puntos de 1960 a 1980
+  labs(title = 'Babies per woman',
+       x = 'Year', 
+       y = 'Fertility') + 
+  geom_smooth(se = FALSE, span = 0.3)  # Línea suavizada
+  # se, oculta la banda de error
+  # span, controla el suavizado. 0.3 mas suave, 1 mas rigido
+```
+
+
+
+
+
+
+
