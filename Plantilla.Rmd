@@ -16,6 +16,15 @@ output:
 ```{r entorno, include=FALSE}
 # Limpiar el entorno
 rm(list = ls())
+
+# Configuraciones chunk
+# eval = FALSE evita que el código se ejecute
+
+# include = FALSE evita que el código y los resultados aparezcan en el archivo terminado. 
+# R Markdown aún ejecuta el código en el fragmento y los resultados pueden ser utilizados por otros fragmentos.
+
+# echo = FALSE evita que el código, pero no los resultados, aparezcan en el archivo terminado. 
+# Esta es una manera útil de incrustar figuras.
 ```
 
 ```{r pacman, include=FALSE, message=FALSE, warning=FALSE}
