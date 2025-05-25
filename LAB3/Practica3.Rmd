@@ -1,0 +1,216 @@
+---
+title: "Practica 3 - Preparación de datos"
+author: "Carlos Santiago Martinez Torres"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    number_sections: no
+  pdf_document: 
+    toc: yes    
+    number_sections: no
+---
+
+# Configuracion inicial
+
+```{r entorno, include=FALSE}
+# Limpiar el entorno
+rm(list = ls())
+
+# Configuraciones chunk
+
+# eval = FALSE evita que el código se ejecute
+
+# include = FALSE evita que el código y los resultados aparezcan en el archivo terminado. 
+# R Markdown aún ejecuta el código en el fragmento y los resultados pueden ser utilizados por otros fragmentos.
+
+# echo = FALSE evita que el código, pero no los resultados, aparezcan en el archivo terminado. 
+# Esta es una manera útil de incrustar figuras.
+```
+
+```{r pacman, include=FALSE, message=FALSE, warning=FALSE}
+# Instalacion de librerias con pacman
+
+# Asegurarse de que el paquete 'pacman' está instalado
+if (!require("pacman")) install.packages("pacman")
+
+# Poner las librerias necesarias 
+pacman::p_load(tidyverse)
+
+# Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
+```
+
+# Carpetas de interes
+
+```{r}
+# Creamos directorio data si no existe, para guardar los ficheros
+if (!file.exists('data')) { dir.create('data') }
+
+# Creamos directorio figure si no existe, para guardar las figuras
+if (!file.exists('figure')) { dir.create('figure') }
+
+# Creamos los accesos a cada carpeta
+datos <- 'data/'
+figuras <- 'figure/'
+```
+
+# **Ejercicio 1** 
+
+Convierte el dataset `pew_religion` a formato _tidy_ usando `gather`. La columna `income` debe contener una variable de tipo `factor` ordenado, el valor `Don't know/refused` será el nivel más alto.
+
+## Carga de fichero 
+
+```{r}
+f1 <- paste0(datos, 'pew_religion.Rdata')
+load(file = f1)
+```
+
+## Verificamos el fichero 
+
+```{r}
+str(pew_religion)
+```
+
+## Convertimos a tidy
+
+```{r}
+# gather(data = pew_religion, key = 'income', value = 'freq', -religion)
+pew_religion <- pew_religion %>%
+  pivot_longer(data = ., names_to = 'income', values_to = 'freq', cols = -religion)
+head(pew_religion)
+```
+
+## Convertimos factor 
+
+```{r eval=FALSE}
+# El factor viene determinado por la variable income
+# obtenemos los valores unicos de esa variable 
+
+# Niveles de la variable 'income', de tipo factor 
+# Ordered no sirve en el 'vector' que extraemos 
+# niveles_religion <- unique(x = pew_religion$income, ordered = TRUE)
+niveles_religion <- unique(x = pew_religion$income)
+niveles_religion
+
+# Una vez identificamos los niveles, convertimos la variable a tipo factor 
+# Dado el orden del vector 'niveles_religion', establecemos que ya está ordenado
+# Es decir, las posiciones son las que queremos, y en mutate podemos usar ordered
+pew_religion <- pew_religion %>%
+  mutate(income = factor(income, levels = niveles_religion, , ordered = TRUE))
+
+# Comprobamos que Don't know/refused sea el nivel mas alto 
+levels(pew_religion$income)[10] > levels(pew_religion$income)[5]
+```
+
+```{r}
+# OTRO CAMINO MAS EFICIENTE (?)
+# Aprovechando el orden en que se obtienen los valores en unique 
+
+niveles_religion <- factor(x = unique(pew_religion$income), ordered = TRUE)
+
+# Comprobamos 
+levels(niveles_religion)
+niveles_religion # Verificamos el valor más alto 
+niveles_religion[10] > niveles_religion[4]
+
+# Actualizamos en el dataframe 
+pew_religion <- pew_religion %>%
+  mutate(income = factor(x = income, levels = niveles_religion))
+head(pew_religion)
+```
+
+# **Ejercicio 2** 
+
+Obtén la versión _tidy_ de este conjunto de datos usando `pivot_longer`.
+
+Consejo: puedes eliminar el prefijo `wk` de las semanas mediante el argumento `names_prefix`. Opcionalmente puedes crear una columna `date` a partir de `date.entered`, sumando las semanas transcurridas desde la fecha de entrada en lista.
+
+## Carga de fichero 
+
+```{r}
+# Conjunto de datos raw, de Billboard
+f2 <- paste0(datos, 'billboard.Rdata')
+load(file = f2)
+```
+
+## Verificamos el fichero  
+
+```{r}
+# str(raw)
+```
+
+## Convertimos a tidy
+
+```{r}
+raw %>%
+  distinct(year) # Una variable que podemos descartar del conjunto 
+
+# Actualizamos el fichero, sin year
+raw <- raw %>%
+  select(-year)
+head(raw[, 1:8])
+```
+
+```{r}
+# CONVERSION A TIDY
+
+# Forma 1 
+raw %>%
+  pivot_longer(data = ., names_to = 'week', values_to = 'rank', cols = -(1:4)) %>%
+  mutate(week = gsub(pattern = 'wk', replacement = '', x = week))
+
+# Forma 2 
+# names_prefix, retira el 'wk' de cada variable
+raw <- raw %>%
+  pivot_longer(data = ., names_to = 'week', values_to = 'rank', cols = -(1:4), names_prefix = 'wk')
+head(raw)
+```
+
+```{r}
+# Crear columna adicional 
+# Para sumar fechas, convertimos a tipo fecha con lubridate 
+# Convertimos semanas a numero, para poder sumar 
+raw %>%
+  mutate(week = as.numeric(week)) %>%
+  mutate(date = as.Date(x = date.entered, format = '%Y-%m-%d') + (week*7)) # Estamos sumando dias
+```
+
+# **Ejercicio 3** 
+
+Convierte el conjunto de datos TB en _tidy_ utilizando `pivot_longer` sin emplear `separate`.
+
+## Cargamos el fichero 
+
+```{r}
+f3 <- paste0(datos, 'tb.Rdata')
+load(f3)
+```
+
+## Verificamos fichero 
+
+```{r}
+# Las variables cargadas tienen el mismo nombre - raw
+# glimpse(raw)
+```
+
+## Convertimos a tidy 
+
+```{r}
+# Forma 1
+
+raw %>%
+  pivot_longer(data = ., names_to = 'Sexo', values_to = 'Caso', cols = -c(1:2)) %>%
+  extract(Sexo, into = c('Sexo', 'Edad'), regex = "([a-zA-Z])(\\d+|u)") # \d cualquier digito 
+
+# Forma 2 
+raw %>%
+  pivot_longer(data = ., names_to = 'Sexo', values_to = 'Caso', cols = -(1:2)) %>%
+  mutate(Edad = gsub(pattern = '[fFmM]', replacement = '', x = Sexo)) %>%
+  mutate(Sexo = gsub(pattern = '[0-9uU]+', replacement = '', x = Sexo))
+
+```
+
+
+
+
+

@@ -1,0 +1,307 @@
+---
+title: "Práctica 3. Preparación de Datos"
+subtitle: "Tratamiento de Datos, Grado en Ciencia de Datos - UV"
+#author: "Marcelino Martínez Sober, Juan Gómez Sanchis, Luis Gómez Chova, Jordi Muñoz Marí"
+#date:  "`r Sys.Date()`"  # Fecha del día actual
+output:
+  html_document:
+    echo: yes
+    number_sections: no
+    theme: lumen
+    toc: yes
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: no
+---
+
+```{r setup, cache=F, echo=F, message=F, warning=F, tidy=F}
+# CONFIGURACIÓN GENERAL
+library(knitr)
+options(width=100)
+# Opciones generales chunks
+opts_chunk$set(echo=TRUE, message=F, error=F, warning=F,
+               comment=NA, fig.align='center', dpi=100, tidy=F,
+               cache.path='./cache/', fig.path='./figure/',
+               fig.width=6, fig.height=2)
+
+# options(xtable.type='html')
+knit_hooks$set(inline=function(x) {
+  if(is.numeric(x)) {
+    round(x, getOption('digits'))
+  } else {
+    paste(as.character(x), collapse=', ')
+  }
+})
+# knit_hooks$set(plot=knitr:::hook_plot_html)
+```
+
+```{r eval=F, include=F}
+# Especificamos las librerías necesarias en esta lista
+packages=c("tidyverse", "knitr", "ggplot2", "datasets", "RColorBrewer")
+# use this function to check if each package is on the local machine
+# if a package is installed, it will be loaded
+# if any are not, the missing package(s) will be installed and loaded
+package.check <- lapply(packages, FUN=function(x) {
+  if (!require(x, character.only=TRUE)) {
+    install.packages(x, dependencies=TRUE,repos='http://cran.rediris.es')
+    library(x, character.only=TRUE)
+  }
+})
+# verify they are loaded
+search()
+```
+
+# Introducción
+
+El objetivo de esta práctica es preparar los datos de una manera estructurada. Para ello vamos a seguir las recomendaciones del artículo de Hadley Wickham, _Tidy Data_, donde nos muestra una forma de estructurar (u organizar) los datos, de manera que se faciliten posteriores cadenas de procesado (visualización, obtención de datos estadísticos, modelización, etc.).
+
+Decimos que un conjunto de datos está estructurado u organizado (se usa el término _tidy_ en inglés) cuando cumple estas tres condiciones:
+
+  1. Cada variable está en una columna.
+  2. Cada observación está en una fila.
+  3. Cada unidad de observación está en una tabla.
+
+Por el contrario, si no se cumple cualquiera de estas tres condiciones decimos que los datos están desordenados (_messy_).
+
+Parece fácil, pero el problema viene al definir exactamente qué es lo que entendemos por variables y observaciones.
+
+  - Una variable (columna) contiene los valores correspondientes a un atributo (ej. altura, tiempo, etc.).
+  - Una observación (fila) contiene los valores medidos sobre la misma unidad (una persona, una fecha, una muestra etc.) a lo largo de los atributos.
+
+Vamos a ver un ejemplo con el dataset IRIS.
+
+```{r}
+head(iris)
+```
+
+¿Es un conjunto _tidy_?
+
+  - ¿Cada variable está en una columna? Depende de lo que definamos como variable.
+    Según hemos visto, una variable debería contener todos los valores que miden un atributo. En este caso el atributo `Width` aparece en dos columnas, `Sepal.Width` y `Petal.Width`. Lo mismo ocurre con `Length`. También las partes de la flor: `Sepal` y `Petal` aparecen en varias columnas.
+
+  - ¿Cada fila es una única observación?
+
+Veamos que aspecto tiene el conjunto IRIS una vez estructurado:
+
+```{r}
+load('data/iris_tidy.Rdata')
+head(iris.tidy)
+```
+
+Como se puede observar, en la versión _tidy_ se han reorganizado los datos de manera que todos los valores medidos en una misma unidad ocupan una única columna. Para ello se han creado dos nuevas columnas correspondientes a dos nuevas variables, `Part`, que indica si se trata de `Sepal` o `Petal`, y `Measure`, que indica si se ha medido `Length` o `Width`.
+
+## Librería `tidyr`: organización de datos en tablas
+
+Para ayudarnos en la tarea de estructurar los datos según este formato _tidy_, en R se dispone de la librería `tidyr`. Consulta el _cheatsheet_ `data-import.pdf` para ver cuáles son las funciones más importantes de esta librería. En esta práctica veremos sobretodo las siguientes:
+
+  - `gather(data, key, value, ...)`: permite agrupar o juntar varias columnas en una sola en función de una misma clave (`key`) que toma los valores de los encabezados de las columnas agrupadas, y una columna `value` toma los valores de sus celdas. 
+  - `spread(data, key, value, ...)`: hace lo contrario que `gather`, divide o esparce los valores que toma una variable dada por `key`/`value` como nuevas columnas cuyos nombres son los valores de `key`. 
+  - `separate(data, col, into, ...)`: separa los contenidos que hay en una columna en varias columnas sin cambiar el número de observaciones (no confundir con `spread`). 
+  - `unite(data, col, ...)`: hace lo contrario de `separate`, junta los contenidos de varias columnas (no confundir con `gather`). 
+
+Aunque `gather` y `spread` se siguen utilizando, existen dos nuevas funciones de `tidyr` que tienen un comportamianto similar:
+
+  - `pivot_longer(data, cols, names_to, values_to)`: condensa la información de las columnas `cols` en dos, dadas por los valores de sus encabezados (`names_to`), y los contenidos de sus celdas (`values_to`).
+  - `pivot_wider(data, names_from, values_from)`: es el caso inverso: extiende las columnas dadas por `names_from` y `values_from` a tantas columnas como valores tome la variable `names_from`.
+
+También son interesantes las siguientes:
+
+  - `drop_na(data, ...)`: elimina las filas que contienen NA's.
+  - `fill(data, ...)`: sustituye los NA's por el valor más reciente no NA.
+  - `replace_na(data, replace=list(), ...)`: reemplaza los NA's con los valores suministrados.
+
+Volviendo al ejemplo del dataset IRIS, veamos cómo podemos usar `gather` y `separate` para convertir el conjunto original `iris` en el conjunto `iris.tidy`.
+
+```{r iris.tidy}
+library(tidyr)
+# Primero agrupamos todas las unidades
+# Agrupamos todas las columnas con datos excepto Species, que está bien
+# iris.t <- gather(data=iris, key="Part", value="Value", 1:4)
+iris.t <- gather(iris, Part, Value, -Species)
+head(iris.t)
+# Luego separamos la variable Part en dos, Part y Measure
+iris.t <- separate(iris.t, Part, into=c("Part", "Measure"))
+head(iris.t)
+```
+
+Ahora ya tiene formato _tidy_. Cada columna contiene una variable, y cada fila una observación.
+
+Podemos hacer lo mismo con `pivot_longer`. Observa como cambia la ordenación de las filas.
+
+```{r iris.tidy.2}
+iris.t.2 <- pivot_longer(iris, col=-Species, names_to="Part", values_to="Value")
+head(iris.t.2)
+# Luego separamos la variable Part en dos, Part y Measure
+iris.t.2 <- separate(iris.t.2, Part, into=c("Part", "Measure"))
+head(iris.t.2)
+```
+
+## Librería `magrittr`: ceci n'est pas une pipe
+
+Como habrás observado, para conseguir formatear el conjunto `iris` hemos tenido que aplicar dos operaciones, `gather` y `separate`. Esto nos ha obligado a tener que crear una variable, `iris.t`, donde almacenar el resultado de `gather`, para luego pasárselo a `separate`. También podríamos haber hecho algo como:
+
+```{r iris.tidy lioso}
+iris.t <- separate(gather(iris, Part, Value, -Species),
+                   Part, into=c("Part", "Measure"))
+head(iris.t)
+```
+
+Pero queda algo confuso, y aún lo es más cuando en lugar de dos operaciones hemos de realizar varias seguidas.
+
+Una alternativa es usar la librería `magrittr` que define el operador `%>%` que permite encadenar este tipo acciones. El concepto es que los datos pasan de una función a otra como a través de una tubería (_pipe_ en inglés) de funciones. Veamos cómo queda nuestro ejemplo:
+
+```{r iris.tidy magrittr}
+iris.t <- gather(iris, Part, Value, -Species) %>% separate(Part, into=c("Part", "Measure")) 
+iris.t %>% head
+```
+
+Fíjate que no hace falta especificar el primer argumento en las funciones `gather`, `separate` y `head`. El operador `%>%` automáticamente lo hace por nosotros.
+
+## Ejemplo de visualización
+
+¿Por qué es mejor el formato _tidy_ que el original? Una razón es que algunas librerías y funciones esperan encontrar los datos en formato _tidy_, entre ellas `ggplot2`. Por ejemplo, imagina que queremos representar los datos separados en función de la medida realizada,  Sepal o Petal. Con los datos originales es complicado, puesto que esta información aparece distribuida en cuatro columnas. Con el conjunto _tidy_ es inmediato.
+
+```{r iris.tidy ggplot}
+library(ggplot2)
+ggplot(iris.t) + aes(Species, Value, color=Species) +
+  geom_jitter() + facet_grid(Part ~ .)
+```
+
+En los siguientes ejercicios veremos los ejemplos más típicos de datos desorganizados, o _messy data_:
+
+  - Las cabeceras de las columnas son variables en sí mismas, no nombres de variables.
+  - Más de una variable aparece en una sola columna.
+  - Las variables aparecen tanto en filas como en columnas.
+  - Varias unidades de observación están almacenadas en una única tabla.
+  - Una única unidad de observación está almacenada en varias tablas.
+
+**Pregunta**: ¿qué tipo de problema(s) de los mencionados aquí presenta el conjunto IRIS original?
+
+```{r}
+
+```
+
+# Las cabeceras de las columnas son variables en lugar de nombres de variables
+
+El siguiente conjunto de datos muestra la relación entre los ingresos y la religión en EEUU.
+
+```{r load religion example}
+print(load('data/pew_religion.Rdata'))
+head(pew_religion[, 1:10])
+```
+
+Como se ve, las cabeceras son valores de una variable de tipo factor (los ingresos) en lugar de nombres de variables.
+
+Este conjunto de datos tiene en realidad tres variables, que deberían estar en tres columnas: `religion`, `ingresos` y `frecuencia` (esta última con el número de casos).
+
+Para ver la utilidad de organizar los datos en formato _tidy_, imagina que quisieramos realizar un gráfico donde se mostrara la cantidad de gente por cada intervalo de ingresos.
+
+```{r echo=FALSE}
+
+```
+
+**¿Cómo lo harías con el conjunto original?**
+
+Fíjate que este gráfico es mucho más fácil de realizar si en lugar de tener los intervalos de ingresos repartidos en columnas los tuvieramos como una variable.
+
+Para convertir este conjunto a formato _tidy_ tendremos que agrupar todas las columnas excepto la de `religion` en dos, una llamada `income` con los intervalos de ingresos, y otra llamada `freq` con el número de casos para cada `income`. Como ya hemos visto en el ejemplo del conjunto IRIS, esto se consigue con `gather`.
+
+**Ejercicio 1** Convierte el dataset `pew_religion` a formato _tidy_ usando `gather`. La columna `income` debe contener una variable de tipo `factor` ordenado, el valor `Don't know/refused` será el nivel más alto.
+
+```{r}
+
+```
+
+Otro ejemplo usando el conjunto de datos `Billboard` que muestra cuando una canción entró en el top 100.
+
+```{r load billboard}
+load('data/billboard.Rdata')
+head(raw[, 1:12])
+```
+
+La posición (_ranking_) de cada canción en cada semana después de haber entrado en el Top 100 se almacena en las columnas `wk1` a `wk76` (ver `str(raw)`). Si un tema sale del Top 100 antes de 76 semanas se rellenan los datos con NA's.
+
+Para obtener la versión _tidy_  hemos de juntar todas las columnas desde `wk1` a `wk76` asignando como clave (`key`) una variable de nombre `week`, como valor (`value`) otra variable de nombre `rank`.
+
+**Ejercicio 2** Obtén la versión _tidy_ de este conjunto de datos usando `pivot_longer`.
+
+Consejo: puedes eliminar el prefijo `wk` de las semanas mediante el argumento `names_prefix`. Opcionalmente puedes crear una columna `date` a partir de `date.entered`, sumando las semanas transcurridas desde la fecha de entrada en lista.
+
+```{r}
+
+```
+
+
+# Varias variables en una misma columna
+
+El conjunto de datos `tuberculosis`, de la _World Health Organization_, presenta este tipo de desordenación (además de la vista en el apartado anterior). Muestra el número de casos de tuberculosis por país, año y grupo demográfico. Estos grupos demográficos se muestran en los nombres de las columnas como `m` o `f` (sexo) y la edad (0-14, 15-24, 25-34, 35-44, 45-54, 55-64, 65- y desconocido (`u`)).
+
+```{r load TB}
+load('data/tb.Rdata')
+head(raw[, 1:16])
+```
+
+Podemos ver como efectivamente en una columna tenemos dos variables juntas, el sexo y el rango de edad. Por ejemplo, en `m014` la `m` hace referencia al sexo y `014` al rango de edad, dos variables que deberían estar separadas.
+
+Para pasar a formato _tidy_ necesitamos realizar dos operaciones en este caso. En la primera juntaremos todas las columnas `m...` y `f...` y los conteos (los llamaremos `casos`). En la segunda, separaremos las columnas con los datos de tipo `m014` en dos columnas, `sexo` y  `edad`.
+
+**Ejercicio 3** Convierte el conjunto de datos TB en _tidy_ utilizando `pivot_longer` sin emplear `separate`.
+
+```{r}
+
+```
+
+
+# Variables almacenadas tanto en filas como en columnas
+
+Esta es la forma más complicada de datos desordenados, y es lo que ocurre en el conjunto de datos del _Global Historical Climatology Network_. Se muestra el tiempo para la estación `MX17004`, en México, durante 5 meses del año 2010.
+
+```{r load weather}
+load('data/weather.Rdata')
+head(raw[, 1:20])
+```
+
+Como se observa, además de las variables `id`, `year` y `month`, tiene variables en las columnas `d1` a `d31` que deberían corresponder a una única variable `dia`, y en las filas, `tmin` y `tmax` deberían estar como columnas. Fíjate además que la columna `element` no es una variable, sino que almacena nombres de variables.
+
+Para obtener la versión _tidy_ primero juntamos todos los días en una variable `dia`. Luego tendremos que separar la columna `element` en dos columnas, `tmax` y `tmin`. Esto último lo lograremos con la función `pivot_wider` de tidyr, que no hemos utilizado hasta ahora.
+
+**Ejercicio 4** Obtén la versión _tidy_ del conjunto de datos `weather` utilizando las funciones `pivot_longer` y `pivot_wider`. Además cambiaremos las columnas `year`, `month` y `dia` por una única variable `fecha`, usando una funcion adecuada de la librería `lubridate`. Para que la operación `pivot_wider` no dé error tendremos que eliminar los NA's cuando usemos `pivot_longer`.
+
+```{r}
+
+```
+
+# Varias unidades de observación en una sola tabla
+
+Volvemos al ejemplo del conjunto `Billboard` para ilustrar este caso. Si nos fijamos en la versión _tidy_ que hemos obtenido en el ejercicio 2 vemos como `artist` y `time` se repiten para cada canción (`track`) y semana. Para evitar estas repeticiones hemos de dividir el dataframe en dos, uno de canciones donde almacenaremos el artista, el nombre de la canción y el tiempo, y otro con el _ranking_ de canciones que nos dará la posición en el Top 100, la canción y la semana. A esta división de los datos en varias tablas para evitar duplicados se le llama _normalización_, y es habitual cuando estamos trabajando con datos almacenados en bases de datos, si bien no lo es tanto en el campo del análisis de datos, donde muchas veces para analizarlos se requiere volver a juntar de nuevo los datos en una única tabla.
+
+**Ejercicio 5** Separa los datos _tidy_ que teníamos en el ejercicio 2 en dos tablas (data frames) tal y como se describe en el párrafo anterior y empleando la función `unique` para eliminar repeticiones.
+
+Opcionalmente se puede crear un identificador, `id`, asociado al nombre de la canción (`track`), y en la tabla de ranking solo usaremos este identificador en lugar del nombre de la canción.
+
+```{r}
+
+```
+
+# Una única unidad de observación almacenada en varias tablas
+
+También nos podemos encontrar casos donde las  observaciones están distribuidas en varias tablas. El procedimiento general para abordar estos casos es:
+
+  1. Leer todos los ficheros en una lista de tablas.
+  2. Añadir una nueva columna a cada tabla con el nombre del fichero original.
+  3. Combinar todas las tablas en una.
+
+Esto se puede hacer fácilmente con las librerías `plyr` y `dplyr` que veremos en la siguiente práctica.
+
+# Otro conjunto messy...
+
+**Ejercicio 6** En la librería _tidyr_ hay varios conjuntos de datos. **table1** es un conjunto _tidy_ pero **table5** no lo es. Realiza las operaciones necesarias para obtener **table1** a partir de **table5**. También deben coincidir los tipos de datos de las columnas. 
+
+```{r}
+
+```
+
+# Entrega de ejercicios
+
+Al finalizar la práctica debes completar el cuestionario del aula virtual. Debes subir a aula virtual el fichero RMarkdown y el compilado HTML con las soluciones a los ejercicios planteados. **No subas un fichero comprimido, sube los ficheros .Rmd y .HTML separados**.

@@ -35,7 +35,7 @@ rm(list = ls())
 if (!require("pacman")) install.packages("pacman")
 
 # Poner las librerias necesarias 
-pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, patchwork, cowplot, gridExtra, corrplot, haven)
+pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, patchwork, cowplot, gridExtra, corrplot, haven, stringi)
 
 # Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
 # readxl, libreria que requiere una carga aparte explícita
@@ -47,6 +47,7 @@ pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, p
 # cowplot, alineacion de gráficos
 # gridExtra, para visualizacion 
 # haven, para read files with `read_sav`
+# stringi, para manejo de cadenas / textos 
 ```
 
 # Carpetas de interes

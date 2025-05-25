@@ -35,7 +35,7 @@ rm(list = ls())
 if (!require("pacman")) install.packages("pacman")
 
 # Poner las librerias necesarias 
-pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, patchwork, cowplot, gridExtra, corrplot, haven)
+pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, patchwork, cowplot, gridExtra, corrplot, haven, stringi, tidytext, tm, quanteda)
 
 # Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
 # readxl, libreria que requiere una carga aparte explícita
@@ -345,6 +345,76 @@ str_match_all(string = texto, pattern = '[^a-z]')
 str_extract_all(string = texto, pattern = '^[^a-z]')
 str_match_all(string = texto, pattern = '^[^a-z]')
 ```
+
+# Ejercicio previo examen final 
+
+## Analisis de texto 
+
+```{r}
+texto <- "El Código de Honor es la declaración de la universidad sobre integridad académica escrita por estudiantes de la universidad de Standford en 1921. Articula las expectativas de la universidad, de estudiantes y profesores para establecer y mantener los estándares más altos en el trabajo académico. El Código de Honor es un compromiso de los estudiantes, individual y colectivamente: que no darán ni recibirán ayuda en los exámenes; que no darán ni recibirán ayuda no permitida en el trabajo de clase, en la preparación de informes o en cualquier otro trabajo que deba ser utilizado por el instructor como base para la calificación; que harán su parte y que participarán activamente para asegurar que otros, así como ellos mismos, defiendan el espíritu y la letra del Código de Honor. La facultad, por su parte, manifiesta su confianza en el honor de sus estudiantes al abstenerse de supervisar los exámenes y de tomar precauciones inusuales e irrazonables para prevenir las formas de deshonestidad mencionadas anteriormente. La facultad también evitará, en la medida de lo posible, los procedimientos académicos que crean tentaciones de violar el Código de Honor. Si bien la facultad sola tiene el derecho y la obligación de establecer requisitos académicos, los estudiantes y la facultad trabajarán juntos para establecer condiciones óptimas para un trabajo académico honorable."
+```
+
+```{r}
+# Contar palabras que empiezan por vocal precedida por uno o más espacios
+patron <- "\\s+[aeiouAEIOU][a-zA-Z]*"
+palabras_vocal <- str_extract_all(texto, patron)[[1]]
+length(palabras_vocal)
+```
+
+```{r}
+# Extraer todas las letras
+letras <- unlist(strsplit(tolower(texto), split = ""))
+consonantes <- letras[letras %in% letters & !(letras %in% c("a", "e", "i", "o", "u"))]
+length(consonantes)
+```
+
+```{r}
+# Contar caracteres que no son vocales (incluyendo la y)
+no_vocales <- sum(!tolower(unlist(strsplit(texto, ""))) %in% c("a", "e", "i", "o", "u"))
+no_vocales
+```
+
+```{r}
+espacios <- sum(unlist(strsplit(texto, "")) == " ")
+espacios
+```
+
+## Fichero nosotros 
+
+```{r}
+nosotros <- paste0(datos, 'Nosotros.tsv')
+df_nosotros <- read.csv(file = nosotros, header = TRUE, sep = '\t')
+```
+
+```{r}
+df_nosotros %>%
+  #select(MD) %>%
+  summarise(median(MD), na.rm = TRUE)
+```
+
+## Fichero proyecto 
+
+```{r}
+proyecto <- paste0(datos, 'EvProyectoS.xlsx')
+p <- read_excel(path = proyecto)
+```
+
+```{r}
+p %>%
+  mutate(across(.cols = starts_with(match = 'Grupo.11'),
+                .fns = as.numeric)) %>%
+  rename(g11 = starts_with(match = 'Grupo.11')) %>% # Nombre nuevo = antiguo 
+  select(g11) %>%
+  summary(na.rm = TRUE)
+  # summarise(var(g11, na.rm=TRUE))
+  
+```
+
+
+
+
+
+
 
 
 
