@@ -1,0 +1,428 @@
+---
+title: "Practica 7 - Resumen"
+author: "Carlos Santiago Martinez Torres"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: 
+    toc: yes    
+    number_sections: no
+  html_document:
+    toc: yes
+    number_sections: no
+---
+
+# Configuracion inicial
+
+```{r entorno, include=FALSE}
+# Limpiar el entorno
+rm(list = ls())
+
+# Configuraciones chunk
+
+# eval = FALSE evita que el código se ejecute
+
+# include = FALSE evita que el código y los resultados aparezcan en el archivo terminado. 
+# R Markdown aún ejecuta el código en el fragmento y los resultados pueden ser utilizados por otros fragmentos.
+
+# echo = FALSE evita que el código, pero no los resultados, aparezcan en el archivo terminado. 
+# Esta es una manera útil de incrustar figuras.
+```
+
+```{r pacman, include=FALSE, message=FALSE, warning=FALSE}
+# Instalacion de librerias con pacman
+
+# Asegurarse de que el paquete 'pacman' está instalado
+if (!require("pacman")) install.packages("pacman")
+
+# Poner/borrar las librerias necesarias 
+pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, 
+               patchwork, cowplot, gridExtra, corrplot, haven, stringi)
+
+# Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
+# readxl, libreria que requiere una carga aparte explícita
+# lubridate, se utiliza con frecuencia con paquetes de tidyverse, pero requiere 
+# una carga aparte
+# jsonlite, trabajar con ficheros JSON
+# visdat, exploracion visual de los datos 
+# tinytex, para LaTex
+# patchwork, para la union de graficos
+# cowplot, alineacion de gráficos
+# gridExtra, para visualizacion 
+# haven, para read files with `read_sav`
+# stringi, para manejo de cadenas / textos 
+```
+
+# Carpetas de interes
+
+```{r}
+# Creamos directorio data si no existe, para guardar los ficheros
+if (!file.exists('data')) { dir.create('data') }
+
+# Creamos directorio figure si no existe, para guardar las figuras
+if (!file.exists('figure')) { dir.create('figure') }
+
+# Creamos los accesos a cada carpeta
+datos <- 'data/'
+figuras <- 'figure/'
+```
+
+# Carga de datos
+
+a.  Carga en un data frame el contenido del fichero de datos licores.csv. 
+Verifica que las columnas tienen el tipo de dato adecuado a su contenido. 
+Muestra las primeras 10 filas.
+
+```{r}
+f <- paste0(datos, 'licores.csv')
+licores <- read.csv(file = f, header = TRUE, sep = ',')
+head(licores)
+```
+
+b.  Indica el número de filas, tipo de datos de cada columna y sus estadísticos 
+básicos. ¿Hay valores especiales (NaN, NA,Inf,-Inf) en alguna columna?
+
+```{r}
+# Informacion de filas y columnas 
+glimpse(x = licores)
+
+# Estadisticos basicos 
+summary(licores)
+
+# Valores especiales. Inf solo a numericos. 
+# Si se aplica a otros, lanza error. 
+sum(is.na(licores))
+```
+
+C. Sustituye en los nombres de las variables el carácter espacio ’ ’ por el 
+carácter barra baja ’\_’.
+
+```{r}
+colnames(licores) <- str_replace_all(string = colnames(licores), pattern = '[ .]', replacement = '_') # Espacio o punto 
+colnames(licores)
+```
+
+# Preparacion de los datos
+
+a.  ¿Qué valores distintos contiene la variable quality? Conviértela a factor y 
+asigna el valor de sus niveles a ‘Muy malo’, ‘Malo’, ‘Regular’, ‘Aprobado’, 
+‘Bueno’ y ‘Muy bueno’, por orden de menor a mayor valoración. ¿Cuántas muestras 
+(filas) corresponden a cada nivel?
+
+```{r}
+# Valores distintos de la variable quality 
+etiqueta <- c('Muy malo', 'Malo', 'Regular', 'Aprobado', 'Bueno', 'Muy bueno')
+
+# Forma 1 
+licores %>%
+  distinct(quality) %>% # Tener cuidado con distinct y unique
+  arrange(quality) %>%
+  as.vector()
+
+# Forma 2
+sort(unique(licores$quality)) # Vector con valores de quality ordenados 
+
+# Forma 3
+q_licor <- factor(x = sort(unique(licores$quality)), ordered = TRUE)
+q_licor
+
+# Antes de actualizar, verificamos 
+licores %>%
+  count(quality)
+
+# Actualizamos 
+licores <- licores %>%
+  mutate(quality = factor(x = quality, levels = q_licor, labels = etiqueta))
+
+# Comprobamos 
+licores %>%
+  count(quality)
+```
+
+b. Realiza las siguientes operaciones:
+
+- Crea otra columna llamada sulfur_dioxide_ratio que contenga el resultado del 
+cociente entra las columnas free_sulfur_dioxide y total_sulfur_dioxide.
+
+```{r}
+licores <- licores %>%
+  mutate(sulfur_dioxide_ratio = free_sulfur_dioxide/total_sulfur_dioxide)
+```
+
+- Elimina las dos columnas que has usado para el cálculo. Elimina también la 
+columna chlorides.
+
+```{r}
+licores <- licores %>%
+  select(-free_sulfur_dioxide, -total_sulfur_dioxide, -chlorides)
+```
+
+- Elimina las filas con un citric acid < 0.05.
+
+```{r}
+licores <- licores %>%
+  filter(!citric_acid < 0.05)
+```
+
+- Ordena las filas de mayor a menor valor de alcohol.
+
+```{r}
+licores <- licores %>%
+  arrange(desc(alcohol))
+```
+
+- Redondea todas las variables numéricas a un máximo de 3 decimales.
+
+```{r}
+licores <- licores %>%
+  mutate(across(.cols = where(is.numeric),
+                .fns = ~round(., 3))) # ~, le estoy pasando más de un valor
+```
+
+Enlaza TODAS las operaciones con tuberías y guarda el data frame resultante en 
+la variable datos_proc.
+
+```{r}
+# datos_proc <- licores
+```
+
+A partir de ahora debes usar el dataframe datos_proc que has obtenido. NOTA: Si 
+no has resuelto el anterior ejercicio, usa el data frame que se proporciona en 
+el fichero datos_proc.Rdata incluido en la carpeta data, para responder a las 
+siguientes preguntas:
+
+```{r}
+# Cargamos el fichero
+f2 <- paste0(datos, 'datos_proc.Rdata')
+load(f2)
+```
+
+```{r}
+# Comprobamos que hayamos obtenido los mismos datos 
+datos_proc <- datos_proc %>%
+  arrange(desc(alcohol))
+which(!licores == datos_proc)
+```
+
+# Estadisticos por quality  
+
+4. Determina, para cada valor de quality, la media, mediana, desviación estándar
+y rango intercuartílico de los valores de alcohol, redondeando a 2 decimales. 
+Confecciona una tabla como la siguiente. Fíjate que se debe combinar media±sd en
+la misma columna. ¿Observas alguna relación entre el nivel de alcohol y la 
+calidad del licor?
+
+```{r}
+# Estadísticos de todas las columnas numéricas
+funs_apply = list('mean' = mean, 'median' = median, 'sd' = sd, 'IQR' = IQR)
+```
+
+```{r}
+# NOTA: Ya está como un conjunto tidy
+datos_proc %>%
+  group_by(quality) %>%
+  summarise(across(.cols = alcohol,
+                   .fns = funs_apply)) # Los nombres quedan alcohol_media, alcohol_median...
+
+# Corregimos el nombre de las variables 
+datos_proc %>%
+  group_by(quality) %>%
+  summarise(across(.cols = alcohol,
+                   .fns = funs_apply,
+                   .names = '{.fn}')) # Queda media, median... 
+
+# Continuamos calculando 
+val_alcohol <- datos_proc %>%
+  group_by(quality) %>%
+  summarise(across(.cols = alcohol,
+                   .fns = funs_apply,
+                   .names = '{.fn}')) %>%
+  mutate('mean+sd' = mean + sd) %>%
+  mutate(across(.cols = where(is.numeric),
+                .fns = ~round(., 2)))
+val_alcohol
+```
+
+# Datos anomalos 
+
+a. Determina si hay algún dato anómalo en las variables numéricas usando las 
+reglas Hampel y Boxplot. Para cada variable añadirás 2 columnas adicionales. 
+Una al aplicar la regla de Hampel y otra al aplicar la regla del Boxplot que 
+indicará si dicho valor es un outlier (TRUE) o no (FALSE).
+
+Suma el número de casos para cada combinación de regla y variable y guarda los 
+resultados como una fila en un data frame outliers.
+
+```{r}
+# Definimos las funciones que necesitamos 
+
+# Funcion mad() de r 
+
+# Funcion que recibe una columna y evalua la desviacion absoluta de la mediana 'median absolute deviation from the median' 
+# madm <- function(v) {
+#   mediana <- median(v, na.rm=TRUE) # Cada vez que 'opera el vector', considera los na.  
+#   valor <- 1.4826 * median(abs(v - mediana), na.rm=TRUE)
+#   return(valor)
+# }
+
+# Funcion para Identificador Hampel
+reglahampel <- function(v) {
+  mediana <- median(v, na.rm = TRUE)
+  madm <- mad(v)
+  return((v < (mediana - (3 * madm)) | (v > (mediana + (3 * madm)))))
+}
+
+
+# Funcion Regla boxplot
+reglaboxplot <- function(v){
+  xi <- quantile(v, probs =  0.25, na.rm=TRUE)
+  xs <- quantile(v, probs =  0.75, na.rm=TRUE)
+  iqr <- xs - xi
+  return((v < (xi - (1.5 * iqr))) | (v > (xs + (1.5 * iqr))))
+}
+```
+
+```{r}
+# Identificacion de outliers
+outliers <- datos_proc %>%
+  mutate(across(.cols = where(is.numeric),
+                .fns = list(reglahampel = reglahampel,
+                            reglaboxplot = reglaboxplot))) %>%
+  summarise(across(.cols = where(is.logical),
+                  .fns = ~sum(., na.rm = TRUE)))
+outliers
+```
+
+b. Representa mediante un diagrama de barras la cantidad de outliers detectada 
+para cada variable y en diferente color para cada regla. Coloca las barras unas 
+al lado de las otras.
+
+```{r}
+# Convertimos a conjunto tidy
+outliers %>%
+  pivot_longer(data = ., names_to = 'Variable', 
+               values_to = 'Valor', 
+               cols = everything())
+
+# Separar la regla que detecto outlier
+outliers <- outliers %>%
+  pivot_longer(data = ., 
+               names_to = 'Variable', 
+               values_to = 'Valor', 
+               cols = everything()) %>%
+  separate(data = ., 
+           col = Variable, 
+           into = c('Variable', 'Regla'), 
+           sep = '_regla') # Para evitar error con el primer '_'
+outliers
+```
+
+```{r}
+# Visualizacion
+outliers %>%
+  ggplot(data = ., mapping = aes(x = Variable, y = Valor, fill = Regla)) +
+  geom_bar(stat = 'identity',
+           position = position_dodge()) +
+  labs(title = 'Outliers detectados',
+       x = 'Variables',
+       y = 'Cantidad',
+       fill = 'Regla') +
+  scale_fill_manual(values = c("hampel" = "steelblue", "boxplot" = "salmon")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+c. Representa, mediante un gráfico adecuado, la dispersión del nivel de alcohol 
+según la variable quality, que además muestre los outliers determinados con la 
+regla del boxplot. ¿ qué grado de calidad presenta mayor número de outliers ?
+
+```{r}
+# Detectamos outliers para alcohol con regla boxplot
+out_alcohol <- datos_proc %>%
+  select(quality, alcohol) %>%
+  mutate(across(.col = alcohol,
+                .fn = list(reglaboxplot = reglaboxplot),
+                .names = '{.fn}'))
+
+out_alcohol %>%
+  ggplot(data = ., mapping = aes(x = quality, y = alcohol, color = reglaboxplot)) +
+  geom_point() +
+  geom_jitter()
+
+out_alcohol %>%
+  ggplot(data = ., mapping = aes(x = quality, y = alcohol, color = reglaboxplot)) +
+  geom_point()
+```
+
+# Matriz 
+
+Obtén la matriz de correlaciones de Pearson entre todas las variables numéricas 
+en datos_proc. ¿Cuáles son las variables con mayor correlación? Realiza una 
+representación gráfica de scatter entre las variables numéricas del conjunto.
+
+```{r}
+# matrix <- cor(select(datos_proc, where(is.numeric)), use = "complete.obs")
+matrix <- datos_proc %>%
+  select(where(is.numeric)) %>%
+  cor(use = 'complete.obs')
+
+corrplot(corr = matrix, method = "color", type = "upper", tl.cex = 0.7, tl.col = "black")
+```
+
+# Representaciones graficas
+
+Representaciones gráficas. Partiendo del data frame datos_proc realiza las 
+siguientes tareas:
+
+a. Representa superpuestos los histogramas de densidad de la variable alcohol 
+para cada valor de quality. Aplica un alpha de 0.5 al histograma. Añade una 
+línea de densidad con un color distinto para cada histograma.
+
+```{r}
+datos_proc %>%
+  ggplot(data = ., mapping = aes(x = alcohol, fill = quality)) +
+  geom_density(alpha = 0.5) +
+  labs(title = 'Densidad por quality', 
+       x = 'Alcohol', 
+       y = 'Densidad') +
+  theme_minimal()
+```
+
+b. Representa un diagrama de dispersión entre citric_acid y fixed_acidity, 
+incuyendo jitter. Usa un color de punto distinto para cada valor de quality y 
+un tamaño de punto proporcional a residual_sugar. Ajusta un modelo (método por 
+defecto) para cada valor de quality sin representar la desviación estándar.
+
+```{r warning=FALSE, message=FALSE}
+datos_proc %>%
+  ggplot(data = ., 
+         mapping = aes(x = fixed_acidity, 
+                       y = citric_acid, 
+                       color = quality, 
+                       size = residual_sugar)) +
+  geom_jitter(alpha = 0.5) +
+  labs(title = 'Diagrama de dispersion', 
+       x = 'Fixed Acidity', 
+       y = 'Citric Acid') +
+  theme_minimal()
+```
+
+c. Representa un diagrama de cajas de pH en función de quality. ¿Cómo se 
+relaciona la calidad del licor con su pH? Añade un gráfico de dispersión para 
+cada caja, incluyendo jitter, coloreando los puntos según citric_acid y su 
+tamaño proporcional a density, con un alpha de 0.1.
+
+```{r warning=FALSE, message=FALSE}
+datos_proc %>%
+  ggplot(data =., 
+         mapping = aes(x = quality, 
+                       y = pH, 
+                       color = citric_acid, 
+                       size = density)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  geom_jitter(alpha = 0.1) +
+  labs(title = 'pH por Quality', 
+       x = 'Quality', 
+       y = 'pH') +
+  theme_minimal()
+```
+
