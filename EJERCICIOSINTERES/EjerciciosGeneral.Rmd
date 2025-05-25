@@ -3,11 +3,11 @@ title: "Ejercicios en clase"
 author: "Carlos Santiago Martinez Torres"
 date: "`r Sys.Date()`"
 output:
-  pdf_document: 
-    toc: yes    
-    number_sections: no
   html_document:
     toc: yes
+    number_sections: no
+  pdf_document: 
+    toc: yes    
     number_sections: no
 ---
 
@@ -175,8 +175,176 @@ df %>%
   # span, controla el suavizado. 0.3 mas suave, 1 mas rigido
 ```
 
+# Ejercicio Tema 6. Textos.
 
+Expresion regular que permita identificar los correos de alumnos de la uv y personal laboral. 
 
+```{r}
+correos <- c('paco5@alumni.uv.es',
+             'vifranjo@uv.es',
+             'martsobm@uv.es',
+             'pascal@gmail.com',
+             'ménfor@alumni.es')
+```
+
+```{r}
+# [] estos corchetes indican una secuencia por caracter. 
+# Ej: [alumni.], interpreta que tenga a, l, u, m, n, i, o '.'. 
+# Para evaluar toda la expresion, se debe usar ().
+str_match(string = correos, pattern = '^[a-zA-Z0-9]+@[alumni.]+[uv\\.es]')
+```
+
+```{r}
+# Expresion correcta
+# ^[a-zA-Z0-9]+ = empezar con caracteres de la a-z, A-Z o 0-9, y se puede repetir mas de una vez
+# @ = Obligatorio para el correo 
+# (alumni\\.)? = evalua la expresion 'alumni.', que puede estar o no (?)
+# uv\\.es = evalua la expresion 'uv.es', aplica a todos los usuarios
+exp_filtro <- '^[a-zA-Z0-9]+@(alumni.)?uv.es'
+```
+
+## Funciones basicas para manejo de caracteres en R
+
+```{r}
+str_detect(string = correos, pattern = exp_filtro)
+```
+
+```{r}
+str_match(string = correos, pattern = exp_filtro)
+```
+
+```{r}
+str_match_all(string = correos, pattern = exp_filtro)
+```
+
+```{r}
+str_extract(string = correos, pattern = exp_filtro)
+```
+
+```{r}
+str_extract_all(string = correos, pattern = exp_filtro)
+```
+
+```{r}
+str_which(string = correos, pattern = exp_filtro)
+```
+
+```{r}
+# En R, gsub() se usa para sustituir globalmente un patrón 
+# dentro de una cadena de texto por otro patrón, reemplazando 
+# todas las ocurrencias encontradas
+
+# NOTA: Aca se evalua caracter por caracter. No se comparan/cuentan cada correo del vector
+# sub reemplaza solo la primera
+sub(pattern = '(alumni.)?uv.es|gmail.com', replacement = 'valencia', x = correos)
+
+# gsub reemplaza todas
+gsub(pattern = '(alumni.)?uv.es|gmail.com', replacement = 'valencia', x = correos)
+```
+
+```{r}
+# Otro ejemplo para sub y gsub
+texto_prueba <- 'Esto es un texto de prueba para expresiones regulares'
+```
+
+```{r}
+# Quiero que la letra 'o', sea reemplazada por '5'.
+
+# sub solo reemplaza el primer elemento 
+sub(pattern = 'o', replacement = '5', x = texto_prueba)
+
+# gsub lo hace a todos los patrones
+gsub(pattern = 'o', replacement = '5', x = texto_prueba)
+```
+
+```{r}
+# Devuelve el numero (posicion) en que encuentra el patron 
+
+# Los correos 1, 2 y 3 son los que cumplen el formato de 
+# @alumni.uv.es o uv.es
+grep(pattern = exp_filtro, x = correos)
+```
+
+```{r}
+# Igual que el anterior, pero con valores bool
+grepl(pattern = exp_filtro, x = correos)
+```
+
+```{r}
+texto_prueba
+
+# strsplit: divide los elementos de una cadena 
+
+# Cada que encuentra una 'a', divide el texto 
+strsplit(x = texto_prueba, split = 'a')
+
+# Ahora por espacios
+strsplit(x = texto_prueba, split = ' ')
+```
+
+```{r}
+# ?str_view_all(string,RegExp)
+```
+
+## Otro ejercicio 
+
+### Vocales acentuadas o no en un string
+
+```{r}
+texto_vocales <- 'Esto es una expresión. Qué? Sí, contiene varias vocales cón n tíldés'
+```
+
+```{r}
+exp_tildes <- '[aeiouáéíóúAEIOUÁÉÍÓÚ]' # = [v1 | v2 | v3 | v4]... vocal 1 o vocal 2 o vocal 3... 
+```
+
+```{r eval=FALSE}
+str_detect(string = texto_vocales, pattern = exp_tildes)
+str_match_all(string = texto_vocales, pattern = exp_tildes)
+str_extract_all(string = texto_vocales, pattern = exp_tildes)
+gsub(pattern = exp_tildes, replacement = 'V', x = texto_vocales)
+```
+
+### Analisis de texto
+
+```{r}
+texto <- c('Con diez cañones por banda,',
+           'viento en popa, a toda vela,',
+           'no corta el mar, sino vuela,',
+           'un velero bergantín.',
+           'Bajel pirata que llaman,',
+           'por su bravura, El Temido,',
+           'en todo mar conocido,',
+           'del uno al otro confín.')
+texto
+```
+
+```{r eval=FALSE}
+# Evalua las 'lineas' que comienzan por una letra de la a-z, en minuscula.
+str_extract_all(string = texto, pattern = '^[a-z]')
+str_match_all(string = texto, pattern = '^[a-z]')
+```
+
+```{r eval=FALSE}
+# Evalua las 'lineas' que terminan por una letra de la a-z, en minuscula.
+# TODAS terminan en punto o coma.
+str_extract_all(string = texto, pattern = '[a-z]$')
+str_match_all(string = texto, pattern = '[a-z]$')
+```
+
+```{r eval=FALSE}
+# Evalua las 'lineas' que NO comienzan por una letra de la a-z, en minuscula. 
+# Las lineas 1 y 5 empiezan por mayuscula
+str_extract_all(string = texto, pattern = '[^a-z]')
+str_match_all(string = texto, pattern = '[^a-z]')
+```
+
+```{r eval=FALSE}
+# Evalua las 'lineas' que NO comienzan por una letra de la a-z, en minuscula.
+# Evalua las 'lineas' que comienzan por un caracter diferente a-z
+str_extract_all(string = texto, pattern = '^[^a-z]')
+str_match_all(string = texto, pattern = '^[^a-z]')
+```
 
 
 
