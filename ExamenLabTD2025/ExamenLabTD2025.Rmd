@@ -1,0 +1,284 @@
+---
+title: "Examen Lab"
+author: "Carlos Santiago Martinez Torres"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: 
+    toc: yes    
+    number_sections: yes
+  html_document:
+    toc: yes
+    number_sections: yes
+---
+
+# Creacion de proyecto 
+
+## Configuracion inicial
+
+Limpiamos el entorno para no tener conflicto con ficheros o archivos anteriores. 
+
+```{r entorno, include=FALSE}
+# Limpiar el entorno
+rm(list = ls())
+
+# Configuraciones chunk
+
+# eval = FALSE evita que el código se ejecute
+
+# include = FALSE evita que el código y los resultados aparezcan en el archivo terminado. 
+# R Markdown aún ejecuta el código en el fragmento y los resultados pueden ser utilizados por otros fragmentos.
+
+# echo = FALSE evita que el código, pero no los resultados, aparezcan en el archivo terminado. 
+# Esta es una manera útil de incrustar figuras.
+```
+
+Instalamos las librerias necesarias para este proyecto. 
+
+```{r pacman, include=FALSE, message=FALSE, warning=FALSE}
+# Instalacion de librerias con pacman
+
+# Asegurarse de que el paquete 'pacman' está instalado
+if (!require("pacman")) install.packages("pacman")
+
+# Poner las librerias necesarias 
+pacman::p_load(tidyverse, readxl, lubridate, jsonlite, visdat, knitr, tinytex, patchwork, cowplot, gridExtra, corrplot, haven, stringi)
+
+# tidyverse
+# readxl
+# lubridate 
+
+# Con tidyverse: ggplot2, dplyr, tidyr, readr, purrr, tibble, stringr, forcats
+# readxl, libreria que requiere una carga aparte explícita
+# lubridate, se utiliza con frecuencia con paquetes de tidyverse, pero requiere una carga aparte
+# jsonlite, trabajar con ficheros JSON
+# visdat, exploracion visual de los datos 
+# tinytex, para LaTex
+# patchwork, para la union de graficos
+# cowplot, alineacion de gráficos
+# gridExtra, para visualizacion 
+# haven, para read files with `read_sav`
+# stringi, para manejo de cadenas / textos 
+```
+
+## Carpetas de interes
+
+Creamos las carpetas para almacenar los ficheros a tratar y figuras, en caso 
+de ser necesarias.
+
+```{r carpetas, include=FALSE}
+# Creamos directorio data si no existe, para guardar los ficheros
+if (!file.exists('data')) { dir.create('data') }
+
+# Creamos directorio figure si no existe, para guardar las figuras
+if (!file.exists('figure')) { dir.create('figure') }
+
+# Creamos los accesos a cada carpeta
+datos <- 'data/'
+figuras <- 'figure/'
+```
+
+# Importacion 
+
+Importamos el fichero que esta almacenado en la carpeta data. 
+
+```{r}
+f <- paste0(datos, 'logs_2024_25_TD.csv')
+
+# Codificacion mas probable
+guess_encoding(file = f) # UTF-8
+
+# Importacion 
+df <- read.csv(file = f, header = TRUE)
+
+# Renombrar
+colnames(df) <- c('Hora', 'Contexto', 'Componente', 'NomEv', 'Descripcion', 'Origen', 'IP', 'User')
+colnames(df)
+
+# Cambio de formato de Hora
+df <- df %>%
+  mutate(Hora = dmy_hms(Hora))
+
+head(df, 5)
+
+# Comprobamos 
+str(df)
+```
+
+# Consultas eventos  
+
+Listado de usuarios distintos registrados. 
+
+```{r}
+# Usuarios distintos 
+# df %>%
+#   distinct(User)
+```
+
+Total de usuarios distintos. 
+
+```{r}
+# Total usuarios distintos 
+df %>%
+  distinct(User) %>%
+  count()
+```
+
+Usuarios con mas y menos logs.
+
+```{r}
+# 5 usuarios con mas logs
+df %>% 
+  group_by(User) %>%
+  count() %>%
+  arrange(desc(n)) %>%
+  head(5)
+
+# 5 usuarios con menos logs
+df %>% 
+  group_by(User) %>%
+  count() %>%
+  arrange(n) %>%
+  head(5)
+```
+
+# Mas conexiones
+
+Actualizamos el df creando las variables con la hora redondeada y 
+con la hora especifica del dia. 
+
+```{r}
+# Horas y dias 
+df <- df %>%
+  mutate(HoraR = floor_date(Hora, unit = 'hour'),
+         HoraDia = hour(HoraR))
+
+df %>%
+  ggplot(data = ., mapping = aes(x = HoraDia)) +
+  geom_bar() + 
+  labs(title = 'Conexiones realizadas cada hora')
+```
+
+Teniendo en cuenta el apartado anterior, tomamos los registros que tengan una
+hora entre 2 y 4. 
+
+```{r}
+# Eventos entre 2 y 4 
+df %>%
+  filter(HoraDia > 2 & HoraDia < 4) %>%
+  count()
+```
+
+# Mejor dia para parar AV
+
+```{r}
+df %>%
+  select(Hora) %>%
+  mutate(dia = format(x = as.Date(Hora), format = '%A')) %>%
+  count(dia) %>%
+  arrange(n)
+```
+
+El mejor dia para parar el AV es el sabado, que es cuando menos conexiones hay. 
+
+```{r}
+# dias_semana <- c('lunes', 'martes', 'miercoles', 'jueves', 'viernes')
+df %>%
+  select(Hora) %>%
+  mutate(dia = format(x = as.Date(Hora), format = '%A')) %>%
+  # count(dia) %>%
+  ggplot(data = ., mapping = aes(x = dia)) +
+  geom_bar(aes(color = dia)) +
+  labs(title = 'Cantidad de logs por dia',
+       y = 'Logs',
+       x = 'dia')
+```
+
+# Contexto DataCamp
+
+Identificamos la cantidad de cursos distintos que hay de DataCamp para
+contar cuantos hay por cada uno y graficar para ver si estan solapados o no en 
+cuanto a las fechas. 
+
+```{r}
+# datacamp <- df[str_detect(string = df$NomEv, pattern = 'Entrega creada'), ]
+
+# Cursos distintos 
+df %>%
+  filter(grepl('DataCamp', Contexto, ignore.case = TRUE) & grepl('Entrega creada', NomEv, ignore.case = TRUE)) %>%
+  distinct(Contexto)
+
+# Alumnos por curso 
+df %>%
+  filter(grepl('DataCamp', Contexto, ignore.case = TRUE) & grepl('Entrega creada', NomEv, ignore.case = TRUE)) %>%
+  count(Contexto)
+
+# Cursos solapados
+df %>%
+  filter(grepl('DataCamp', Contexto, ignore.case = TRUE) & grepl('Entrega creada', NomEv, ignore.case = TRUE)) %>%
+  ggplot(data = ., mapping = aes(x = Hora, y = User, color = Contexto)) +
+  geom_point()
+```
+
+# Direccion IP
+
+Identifamos las IP con el formato correcto
+
+```{r}
+formatoIP = '([0-9])+{3}\\.([0-9])+{3}\\.([0-9])+{3}\\.([0-9])+{3}'
+```
+
+Obtencion del df que contiene el Id correcto 
+
+```{r}
+df_IP <- df %>% 
+  filter(grepl(formatoIP, IP, ignore.case = TRUE))
+```
+
+Comprobar el numero de conexiones por usuario
+
+```{r}
+# Numero de conexiones - Diferentes IPs
+df_IP %>%
+  distinct(IP) %>%
+  count()
+
+# Numero de usuarios diferentes con el formato de IP correcto 
+df_IP %>%
+  distinct(User) %>%
+  count()
+
+# Usuarios con mas de 2 IPs
+df_IP %>%
+  count(User) %>%
+  filter(n > 2) %>%
+  arrange(n)
+```
+
+# Logs por usuario 
+
+```{r}
+mean_logs <- df %>%
+  count(User) %>%
+  summarise(mean(n))
+mean_logs
+
+# Cantidad de logs por usuario 
+df %>%
+  ggplot(data = ., mapping = aes(x = User)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,273 @@
+---
+title: "Práctica 4. Manejo de Datos"
+subtitle: "Tratamiento de Datos, Grado en Ciencia de Datos - UV"
+author: "Carlos Santiago Martinez Torres"
+date:  "`r Sys.Date()`"  # Fecha del día actual
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: no
+  html_document:
+    echo: yes
+    number_sections: no
+    theme: lumen
+    toc: yes
+---
+
+```{r setup, cache = F, echo = F, message = F, warning = F, tidy = F}
+# CONFIGURACIÓN GENERAL
+library(knitr)
+options(width = 100)
+# Opciones generales chunks
+opts_chunk$set(echo = T, message = F, error = F, warning = F,
+               comment = NA, fig.align = 'center', dpi = 100, tidy = F,
+               cache.path = '.cache/', fig.path = './figure/')
+# options(xtable.type = 'html')
+knit_hooks$set(inline = function(x) {
+  if(is.numeric(x)) {
+    round(x, getOption('digits'))
+  } else {
+    paste(as.character(x), collapse = ', ')
+  }
+})
+# knit_hooks$set(plot = knitr:::hook_plot_html)
+knitr::opts_chunk$set(fig.width=8, fig.height=4)
+```
+
+```{r eval = FALSE, include = FALSE}
+# Especificamos las librerías necesarias en esta lista
+packages = c("tidyverse", "knitr", "ggplot2", "datasets", "RColorBrewer","nycflights13")
+# use this function to check if each package is on the local machine
+# if a package is installed, it will be loaded
+# if any are not, the missing package(s) will be installed and loaded
+package.check <- lapply(packages, FUN = function(x) {
+  if (!require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE,repos='http://cran.rediris.es')
+    library(x, character.only = TRUE)
+  }
+})
+# verify they are loaded
+search()
+```
+
+# Introducción y objetivos.
+
+El objetivo de esta práctica es manejar data frames estructurados (variables en columnas, muestras en filas) con **tidyR** de una manera eficiente y sencilla utilizando la librería **DPLYR**. Esta librería fue desarrollada por Hadley Wickham (el creador de tidyR) con funciones programadas en C++ de manera óptima. Cuando hablamos de manejar data frames nos referimos a realizar operaciones sobre las muestras y sobre las variables tales como:
+
+  1. Seleccionar muestras de un data frame en base a algún tipo de criterio.
+  2. Seleccionar variables que cumplan alguna condición.
+  3. Ordenar las muestras de un data frame.
+  4. Unir varios data frames.
+  5. Crear nuevas variables a partir de las variables existentes.
+  6. Agrupar muestras que cumplan algún criterio para realizar cálculos estadísticos.
+
+Para llevar a cabo estas operaciones **DPLYR** proporciona una serie de funciones que enumeramos a continuación:
+
+* `select()`. Permite seleccionar un subconjunto de las variables (columnas) del data frame.
+* `filter()`. Esta función, como su propio nombre indica, permite filtrar las muestras (filas) de un data frame en base a algún criterio.
+* `group_by()`. Esta función crea grupos de muestras a partir de las categorías de una variable.
+* `summarise()`. Esta función facilita el cálculo de parámetros estadísticos de las variables de un data frame.
+* `arrange()`. Permite reordenar las muestras de un data frame. 
+* `XXX_join()`. Las funciones de la familia *XXX_join* permiten combinar data frames.
+* `rename()`. Esta función permite renombrar variables de un data frame.
+* `mutate()`. Esta función permite añadir nuevas variables (columnas) a partir de la transformación de columnas ya existentes.
+* `%>%` Es el operador _pipe_ que permite concatenar funciones.
+
+En clase de teoría te han explicado cómo utilizar estas funciones y ya has trabajado con ellas, así que vamos a ver como te desenvuelves con **DPLYR**.
+
+
+# Ejercicios
+
+Vamos a cargar el conjunto de datos ``VuelosNY.Rdata`` que contiene dos data frames: `flights` y `planes`. 
+
+```{r, include=FALSE}
+library(dplyr)
+library(dbplyr)
+rm(list=ls())
+load("./data/VuelosNY.Rdata")
+```
+
+## Ejercicio 1 
+
+Muestra las primeras muestras de ambos data frames para hacerte una idea de las variables que contienen. ¿Qué diferencia existe entre la información mostrada en ambos data frames?
+
+# Información sobre el df de vuelos 
+
+```{r }
+head(flights)
+```
+En el df tenemos información sobre la fecha en que se realizó el vuelo, los tiempos de vuelo, distancia, entre otros; es información general sobre el vuelo. 
+
+```{r }
+head(planes)
+```
+En el df de planes, tenemos información sobre los aviones. El tipo, modelo, numero de motores, etc. 
+
+
+## Ejercicio 2
+
+En nuestro estudio queremos aplicar una serie de criterios de exclusión sobre las muestras de ambos data frames. En concreto queremos eliminar los aviones fabricados por el fabricante MCDONNELL DOUGLAS (vigila si existe más de una denominación de esta compañía en la variable `manufacturer`). Del mismo modo, queremos seleccionar aquellos aviones en los que el número de asientos esté entre 90 y 210 (variable `seats`). Aplica las dos operaciones de filtrado secuencialmente utilizando el operador _pipe_ y almacena el data frame resultante en `planes.f`. En el data frame resultante unifica las denominaciones del fabricante `AIRBUS` bajo la denominación `"AIRBUS COMP"`.
+
+* Nota: Revisar el uso de la función `filter` vista en clase y tener en cuenta los operadores de comparación: igual ==, distinto !=, mayor >, mayor o igual >=, menor <, menor o igual <=.
+
+```{r }
+vector_douglas <- planes %>%
+                  filter(grepl(c('DOUGLAS', 'MCDONNELL'), manufacturer, ignore.case = TRUE)) %>%
+                  distinct(manufacturer) %>%
+                  as.vector()
+vector_douglas
+```
+
+```{r}
+planes.f <- planes %>%
+            filter(!manufacturer %in% vector_douglas) %>%
+            filter(seats>=90 & seats <=120)
+
+planes.f$manufacturer[planes.f$manufacturer == 'AIRBUS'] <- 'AIRBUS COMP'
+
+planes.f %>% filter(manufacturer=='AIRBUS') # Comprobamos que se hizo el cambio correcto
+
+```
+
+## Ejercicio 3
+
+Crea un data frame denominado `flights.f` que contenga los vuelos que involucren a los aviones presentes en el data frame `planes.f`. Para ello utiliza algunas de las funciones de **XXX_join** y la variable `tailnum` que es común en ambos data frames. 
+
+```{r }
+flights.f <- flights %>% semi_join(planes.f,'tailnum') # Semi, solo para quedar con los valores de flights
+#flights.f <- semi_join(flights, planes.f,'tailnum')
+
+```
+
+## Ejercicio 4 
+
+Reasigna los nombres de los data frames `planes.f` y `flights.f` a los nombres originales  `planes` y `flights`.
+
+```{r }
+planes <- planes.f
+flights <- flights.f
+```
+
+## Ejercicio 5
+
+Existen variables que, a priori, no tienen demasiado interés para el estudio que queremos llevar a cabo, en particular queremos eliminar:
+
+* En el data frame  `flights`, quédate con todas las variables excepto  `time_hour` y las variables que terminan con la palabra "time".
+* En el data frame  `planes`, quédate con todas las variables excepto `speed` y `type`.
+
+```{r }
+flights <- flights %>%
+            select(-time_hour) %>%
+            select(-ends_with('time'))
+colnames(flights) # Verificamos que no esté 'time_hour' y variables que terminene en 'time'.
+
+planes <- planes %>% select(-speed, -type)
+colnames(planes) # Verificamos que no estén las variables. 
+
+```
+
+## Ejercicio 6
+
+Incorpora una nueva variable a `flights` denominado `Full_Date` que sea de tipo `character` que incorpore una cadena de texto de la forma `d-m-Y`, donde `d` indica día, `m` mes e `Y` año, a partir de la información incluida en el data frame. Utiliza una función de **DPLYR** que permita conseguir este propósito. Elimina las variables originales involucradas en la creación de la nueva variable.
+
+```{r }
+flights <- flights %>%
+            mutate(Full_Date = paste(day, month, year, sep='-')) %>% # Una vez que crea la nueva variable
+            select(-day, -month, -year) # Quitamos los datos que no queremos en el df
+head(flights)
+```
+
+## Ejercicio 7
+
+Utilizando las funciones `group_by`, `summarise` y `filter`, crea un data frame donde se calcule el número de vuelos (`Num_flights`), la distancia media recorrida (`Mean_distance`) y la distancia total recorrida (`Total_distance`) para cada uno de los aviones (`tailnum`) presentes en el conjunto `flights`. Descarta aquellos registros del data frame en los que la variable `tailnum` tenga un valor NA. Utiliza el operador pipe para enlazar las funciones. Almacena el data frame en una variable denominada `Distances_plane`.  
+
+```{r }
+Distances_plane <- flights %>%
+                    filter(!is.na(tailnum)) %>%
+                    group_by(tailnum) %>%
+                    summarise(Num_flights = n(), Mean_distance = mean(distance), Total_distance = sum(distance))
+head(Distances_plane)
+```
+
+## Ejercicio 8
+
+Consigue un data frame denominado `Distance_Manufacturer_model` que contenga 4 columnas (`tailnum`, `Total_distance`, `manufacturer` y `model`) ordenado de mayor a menor en base a la variable `Total_distance`. Para ello une los data frames `Distances_plane` (calculado en el ejercicio anterior y que contiene las distancias totales) y `planes` (que contiene los datos de cada modelo de avión). La variable que te permitirá unir ambos data frames es `tailnum`. A continuación, deberás ordenar, en orden descendente de la variable `Total_distance` el data frame resultante. Finalmente, selecciona las variables que tiene que contener la tabla final (`Total_distance`, `manufacturer` y `model`). Utiliza el operador pipe para enlazar las funciones.
+
+```{r }
+Distance_Manufacturer_model <- Distances_plane %>% 
+                                inner_join(planes, by = 'tailnum') %>%
+                                select(Total_distance, manufacturer, model) %>%
+                                arrange(desc(Total_distance))
+head(Distance_Manufacturer_model)
+```
+
+## Ejercicio 9
+
+Queremos averiguar si existe algún tipo de relación entre el retraso de los vuelos (llegada y salida) y el fabricante. Para ello queremos calcular el retraso medio en la llegada y en la salida de los vuelos (cuando se disponga de esos datos) para cada uno de los fabricantes (`manufacturer`). Propón la estrategia (y el código) a emplear para conseguir proporcionar un data frame ordenado del retraso en la llegada y la salida para cada uno de los fabricantes. ¿Cuáles son los dos fabricantes de aviones que más se retrasan en las salidas? ¿Y en las llegadas?
+
+```{r }
+Delays <- flights %>%
+                inner_join(planes, by = 'tailnum') %>% # Para poder ver el fabricante 
+                filter(!is.na(dep_delay) & !is.na(arr_delay)) %>% # Los retrasos, para cuando no son nulos
+                select(manufacturer, dep_delay, arr_delay) %>%
+                group_by(manufacturer) %>%
+                summarise(Mean_DepDelay = mean(dep_delay), Mean_ArrDelay = mean(arr_delay)) 
+Delays
+
+# ¿Cuáles son los tres fabricantes de aviones que más se retrasan en las salidas? 
+Delays %>% arrange(desc(Mean_DepDelay)) %>% head(3)
+
+# ¿Y en las llegadas?
+Delays %>% arrange(desc(Mean_ArrDelay)) %>% head(3)
+
+```
+
+## Ejercicio 10 
+
+Lo que hemos hecho en el ejercicio anterior está bien, pero vale más una imagen que mil palabras. Vamos a plantear representaciones gráficas para visualizar el retraso de cada compañía. 
+
+```{r, include=FALSE}
+library(tidyr)
+library(ggplot2)
+```
+
+* Representa los boxplots de las variables relacionadas con el retraso en la llegada y en la salida (las que terminan con la palabra `delay`) agrupadas por compañía aérea (variable `carrier`) dibujando en dos colores diferentes cada tipo de retraso: tendrás que modificar el data frame con la función `pivot_longer` para crear una nueva variable que indique el tipo de retraso (llegada y salida) que sirva para colorear agrupando por cada tipo de retraso.
+
+```{r }
+flights %>% 
+  select(ends_with('delay'), carrier) %>%
+  pivot_longer(names_to = 'Tipo_retraso', values_to = 'Values', cols = ends_with('delay')) %>%
+  ggplot(aes(x=carrier, y=Values, fill=Tipo_retraso)) + 
+  geom_boxplot() +
+  labs (title = 'Retrasos por aerolínea',
+          x = 'Aerolínea',
+          y = 'Retraso')
+
+```
+
+* Representa un gráfico de barras que contenga, para cada compañía aérea (`carrier`), el retraso medio de llegadas, de salidas y el retraso global (nueva variable con el promedio del retraso de salida y el retraso de llegadas). El eje $x$ representará la compañía aérea y el eje $y$ el retraso. Las barras de cada tipo de retraso (llegadas, salidas y global) tendrán un color de relleno diferente (tendrás que modificar el data frame con la función `pivot_longer` para crear una nueva variable que indique el tipo de retraso) y se posicionarán una junto a la otra (no apiladas). No olvides añadir etiquetas en los ejes $x$ e $y$.
+
+```{r }
+flights %>%
+  group_by(carrier) %>%
+  summarise(arr_delay = mean(arr_delay, na.rm = TRUE), dep_delay = mean(dep_delay, na.rm = TRUE)) %>%
+  mutate(general_delay = (arr_delay + dep_delay) / 2) %>%
+  pivot_longer(names_to = "delay_type",
+               values_to = "delay",
+               cols = c(arr_delay, dep_delay, general_delay)) %>%
+  ggplot(aes(x = carrier, y = delay, fill = delay_type)) +
+  geom_col(position = 'dodge') + # Para que no sobreponga las columnas 
+  labs(title = 'Media de retrasos por aerolinea',
+       x = 'Aerolínea',
+       y = 'Retraso')
+
+```
+
+¿Cuál de las dos representaciones anteriores es más adecuada para visualizar los retrasos?
+
+La representación 2 es más adecuada para visualizar los retrasos, ya que permite comparar los valores entre compañias. 
+
+# Entrega de ejercicios
+
+Al finalizar la práctica debes completar el cuestionario de aula virtual. Debes subir a aula virtual el fichero RMarkdown compilado en html o pdf con las soluciones a los ejercicios planteados.
